@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "countersign"
-version = "0.1.0"
-description = "The human-judgment layer for AI-assisted advisory work: every AI step is decided, reasoned and signed by a named person, and the signed milestone is the billable unit."
+version = "0.2.0"
+description = "An operating system for signed judgment across KPMG: AI does the work, named people decide and sign, and every deliverable is billed as Judgment plus Signature."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -27,7 +27,7 @@ countersign-demo = "countersign.demo:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-countersign = ["config/*.toml", "web/*"]
+countersign = ["config/*.toml", "config/catalogue/*.toml", "web/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,16 +1,35 @@
-# Fictional people for the prototype. Production: the firm's SSO / identity provider.
+# Fictional people for the prototype. Production: the firm's SSO and learning records.
+# "ai-review" = certified to lead and sign AI-assisted milestones.
 
 [users."lea.brunner"]
 name = "Lea Brunner"
 role = "junior"
+department = "legal"
+certifications = ["ai-review"]
+
+[users."nico.steiner"]
+name = "Nico Steiner"
+role = "junior"
+department = "legal"
+certifications = []          # joined last month; on Classic work until certified
 
 [users."marco.rossi"]
 name = "Marco Rossi"
 role = "manager"
+department = "legal"
+certifications = ["ai-review"]
 
 [users."anna.keller"]
 name = "Dr. Anna Keller"
 role = "partner"
+department = "legal"
+certifications = ["ai-review"]
+
+[users."thomas.weber"]
+name = "Dr. Thomas Weber"
+role = "partner"
+department = "audit"
+certifications = ["ai-review"]
 
 [users."alpina.client"]
 name = "Alpina Pumps AG (client)"

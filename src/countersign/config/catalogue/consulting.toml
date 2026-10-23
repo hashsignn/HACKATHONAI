@@ -1,0 +1,55 @@
+# Consulting. Hard to break into fixed steps, so Classic stays available. Diagnostics
+# can carry part of the fee at risk against a measured baseline.
+
+[department]
+key = "consulting"
+name = "Consulting"
+summary = "Operating model, technology and transformation."
+
+[policy]
+options = ["classic", "per_deliverable", "retainer", "outcome_linked"]
+min_review_level = "standard"
+max_at_risk_share = 0.20
+rationale = [
+  "Up to 20% of the Judgment line may be at risk against a KPI baseline the client measures.",
+  "Payment ramps between threshold and target and is capped; the Signature line is never at risk.",
+]
+
+[[services]]
+key = "operating_model_diagnostic"
+name = "Operating-model diagnostic"
+deliverable = "Baseline KPIs, root causes, recommendations and a sequenced roadmap"
+min_consequence = "internal_use"
+outcome_linked_allowed = true
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "synthesis"
+  title = "Data and interview synthesis"
+  lane = "ai_drafts_human_edits"
+  lead = "junior"
+  weight = 0.20
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "baseline"
+  title = "Baseline KPIs"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.20
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "root_causes"
+  title = "Root causes (blind)"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.30
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "roadmap"
+  title = "Recommendations and roadmap"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.30

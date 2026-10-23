@@ -1,0 +1,95 @@
+# Published price list for the convergence model (illustrative numbers).
+#
+# Every deliverable is priced in two lines:
+#   Judgment  = flat fee by complexity tier; the AI's research and drafting are included
+#   Signature = a named person signs and KPMG carries the liability; priced by consequence
+#
+# A service may override its department's signature prices (e.g. a routine filing).
+# historical_fee   = average fee for the same deliverable billed by the hour before AI
+# reference_hours  = average human hours behind that historical fee
+# Both come from the firm's billing and timesheet history and anchor the new prices.
+# An engagement is locked to the version current when its pricing was confirmed.
+
+version = "2026.10"
+currency = "CHF"
+client_platform_factor = 0.55   # Judgment when the client's own team prepares in KPMG's AI
+retainer_discount = 0.15        # annual retainer vs buying the same deliverables one by one
+retainer_deliverables = 12      # deliverables covered by a standard annual retainer
+
+# ---------------------------------------------------------------- Legal
+[departments.legal]
+signature = { internal_use = 1500, external_reliance = 4000, regulatory = 7500 }
+platform_licence = 36000
+
+[departments.legal.services.contract_review]
+judgment        = { tier1 = 2900, tier2 = 5700, tier3 = 9800 }
+historical_fee  = { tier1 = 5000, tier2 = 10000, tier3 = 17500 }
+reference_hours = { tier1 = 20, tier2 = 40, tier3 = 70 }
+
+[departments.legal.services.nda_triage]
+signature       = { internal_use = 250, external_reliance = 600, regulatory = 1000 }
+judgment        = { tier1 = 450, tier2 = 850, tier3 = 1400 }
+historical_fee  = { tier1 = 750, tier2 = 1500, tier3 = 2500 }
+reference_hours = { tier1 = 3, tier2 = 6, tier3 = 10 }
+
+# ---------------------------------------------------------------- Audit
+[departments.audit]
+signature = { internal_use = 6000, external_reliance = 9000, regulatory = 15000 }
+platform_licence = 0
+
+[departments.audit.services.journal_entry_testing]
+signature       = { internal_use = 2000, external_reliance = 3000, regulatory = 4000 }
+judgment        = { tier1 = 9000, tier2 = 17000, tier3 = 30000 }
+historical_fee  = { tier1 = 13800, tier2 = 27600, tier3 = 50600 }
+reference_hours = { tier1 = 60, tier2 = 120, tier3 = 220 }
+
+# ---------------------------------------------------------------- Tax
+[departments.tax]
+signature = { internal_use = 3000, external_reliance = 12000, regulatory = 18000 }
+platform_licence = 42000
+
+[departments.tax.services.corporate_tax_return]
+signature       = { internal_use = 1000, external_reliance = 1800, regulatory = 2500 }
+judgment        = { tier1 = 3800, tier2 = 6500, tier3 = 11000 }
+historical_fee  = { tier1 = 7000, tier2 = 12600, tier3 = 22400 }
+reference_hours = { tier1 = 25, tier2 = 45, tier3 = 80 }
+
+[departments.tax.services.tax_opinion]
+judgment        = { tier1 = 4500, tier2 = 11000, tier3 = 24500 }
+historical_fee  = { tier1 = 16900, tier2 = 31000, tier3 = 51800 }
+reference_hours = { tier1 = 60, tier2 = 110, tier3 = 184 }
+
+# ---------------------------------------------------------------- Deal Advisory
+[departments.deal_advisory]
+signature = { internal_use = 5000, external_reliance = 15000, regulatory = 25000 }
+platform_licence = 0
+
+[departments.deal_advisory.services.financial_due_diligence]
+judgment        = { tier1 = 20000, tier2 = 42000, tier3 = 75000 }
+historical_fee  = { tier1 = 36000, tier2 = 78000, tier3 = 135000 }
+reference_hours = { tier1 = 120, tier2 = 260, tier3 = 450 }
+
+[departments.deal_advisory.services.ma_lead_advisory]
+judgment        = { tier1 = 45000, tier2 = 80000, tier3 = 150000 }
+historical_fee  = { tier1 = 60000, tier2 = 120000, tier3 = 240000 }
+reference_hours = { tier1 = 200, tier2 = 400, tier3 = 800 }
+
+# ---------------------------------------------------------------- Consulting
+[departments.consulting]
+signature = { internal_use = 2000, external_reliance = 6000, regulatory = 12000 }
+platform_licence = 0
+
+[departments.consulting.services.operating_model_diagnostic]
+judgment        = { tier1 = 26000, tier2 = 52000, tier3 = 100000 }
+historical_fee  = { tier1 = 39000, tier2 = 78000, tier3 = 156000 }
+reference_hours = { tier1 = 150, tier2 = 300, tier3 = 600 }
+
+# ---------------------------------------------------------------- Risk & ESG
+[departments.risk_esg]
+signature = { internal_use = 2500, external_reliance = 7000, regulatory = 12000 }
+platform_licence = 30000
+
+[departments.risk_esg.services.csrd_readiness]
+judgment        = { tier1 = 11000, tier2 = 22000, tier3 = 41000 }
+historical_fee  = { tier1 = 20800, tier2 = 41600, tier3 = 78000 }
+reference_hours = { tier1 = 80, tier2 = 160, tier3 = 300 }

@@ -1,0 +1,51 @@
+# Risk & ESG. Regulatory reporting recurs every year, so retainers fit.
+
+[department]
+key = "risk_esg"
+name = "Risk & ESG"
+summary = "Regulatory reporting, ESG and sustainability readiness, internal controls."
+
+[policy]
+options = ["classic", "per_deliverable", "retainer", "client_platform"]
+min_review_level = "standard"
+rationale = [
+  "Readiness work for audit clients excludes the client platform (independence).",
+]
+
+[[services]]
+key = "csrd_readiness"
+name = "CSRD reporting readiness"
+deliverable = "Double materiality assessment, data gaps and a remediation roadmap"
+min_consequence = "regulatory"
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "data_collection"
+  title = "ESG data collection"
+  lane = "ai_led_spot_check"
+  lead = "junior"
+  weight = 0.20
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "materiality"
+  title = "Double materiality (blind)"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.35
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "gap_assessment"
+  title = "Gap assessment"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.25
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "remediation"
+  title = "Remediation roadmap"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.20

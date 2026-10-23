@@ -1,0 +1,81 @@
+# Legal. Working example of the prototype: the Alpina / SinoGear supply agreement.
+
+[department]
+key = "legal"
+name = "Legal"
+summary = "Contract review, negotiation support and legal opinions."
+
+[policy]
+options = ["classic", "per_deliverable", "retainer", "client_platform"]
+min_review_level = "standard"
+rationale = [
+  "Legal advice to audit clients is restricted by independence rules; the firm-wide check blocks the client platform for them.",
+]
+
+[[services]]
+key = "contract_review"
+name = "Commercial contract review"
+deliverable = "Review report: key terms, deviations from market, risks, redlines and negotiation priorities"
+min_consequence = "internal_use"
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "extraction"
+  title = "Key-term extraction"
+  lane = "ai_led_spot_check"
+  lead = "junior"
+  weight = 0.10
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "benchmark"
+  title = "Benchmark against market terms"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.15
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "risk_screening"
+  title = "Risk screening"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.35
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "redlines"
+  title = "Proposed redlines"
+  lane = "ai_drafts_human_edits"
+  lead = "junior"
+  weight = 0.25
+
+  [[services.milestones]]
+  key = "M5"
+  slug = "negotiation_priorities"
+  title = "Negotiation priorities"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.15
+
+[[services]]
+key = "nda_triage"
+name = "NDA triage"
+deliverable = "Green / amber / red classification with required changes"
+min_consequence = "internal_use"
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "clause_extraction"
+  title = "Clause extraction"
+  lane = "ai_led_spot_check"
+  lead = "junior"
+  weight = 0.40
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "playbook_check"
+  title = "Check against the client's playbook"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.60

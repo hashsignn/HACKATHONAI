@@ -1,0 +1,81 @@
+# Tax. Compliance is recurring (retainer); opinions are one-off and relied on externally.
+
+[department]
+key = "tax"
+name = "Tax"
+summary = "Tax compliance, transfer pricing and tax opinions."
+
+[policy]
+options = ["classic", "per_deliverable", "retainer", "client_platform"]
+min_review_level = "standard"
+rationale = [
+  "Tax positions are never priced on the tax saved: no outcome-linked fees.",
+]
+
+[[services]]
+key = "corporate_tax_return"
+name = "Corporate tax return"
+deliverable = "Filed corporate income tax return with documented adjustments"
+min_consequence = "regulatory"
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "tb_mapping"
+  title = "Trial-balance mapping"
+  lane = "ai_led_spot_check"
+  lead = "junior"
+  weight = 0.20
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "adjustments"
+  title = "Tax adjustments"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.35
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "uncertain_positions"
+  title = "Uncertain tax positions (blind)"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.25
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "filing_approval"
+  title = "Return review and filing approval"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.20
+
+[[services]]
+key = "tax_opinion"
+name = "Tax opinion"
+deliverable = "Signed opinion on the tax treatment of a transaction"
+min_consequence = "external_reliance"
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "research"
+  title = "Facts and law research"
+  lane = "ai_drafts_human_edits"
+  lead = "junior"
+  weight = 0.25
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "issue_spotting"
+  title = "Issue spotting (blind)"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.30
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "analysis"
+  title = "Analysis and conclusion"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.45

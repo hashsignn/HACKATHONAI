@@ -1,0 +1,60 @@
+# Audit & Assurance. The client keeps paying a fixed engagement fee; the Judgment and
+# Signature lines are computed internally to staff, price and evidence the audit.
+
+[department]
+key = "audit"
+name = "Audit & Assurance"
+summary = "Statutory and voluntary audits. AI tests whole populations; people judge and sign."
+
+[policy]
+options = ["engagement_fee"]
+min_review_level = "elevated"
+rationale = [
+  "Audit fees may not depend on outcomes, so no outcome-linked fees.",
+  "The client is billed a fixed engagement fee; the two lines are an internal measure.",
+  "Every audit opinion is signed by the engagement partner and an engagement quality reviewer.",
+]
+
+  [policy.signature_slots]
+  internal_use = ["partner"]
+  external_reliance = ["partner"]
+  regulatory = ["partner", "quality_reviewer"]
+
+[[services]]
+key = "journal_entry_testing"
+name = "Journal-entry testing"
+deliverable = "Audit area signed off: fraud-risk criteria, full-population results, follow-up and conclusion"
+min_consequence = "regulatory"
+notes = "AI scores 100% of journal entries; the auditor sets the fraud-risk criteria blind, before seeing the scores."
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "population"
+  title = "Population completeness and data ingestion"
+  lane = "ai_led_spot_check"
+  lead = "junior"
+  weight = 0.15
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "risk_criteria"
+  title = "Fraud-risk criteria (blind)"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.30
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "anomaly_review"
+  title = "Anomaly review"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.35
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "conclusion"
+  title = "Follow-up and conclusion"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.20

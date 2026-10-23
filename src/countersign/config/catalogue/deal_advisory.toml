@@ -1,0 +1,101 @@
+# Deal Advisory. Due diligence is relied on by buyers and lenders, so it is never
+# contingent. Lead advisory may carry part of the fee at risk, as is market practice.
+
+[department]
+key = "deal_advisory"
+name = "Deal Advisory"
+summary = "Financial due diligence, valuation and M&A lead advisory."
+
+[policy]
+options = ["classic", "per_deliverable", "outcome_linked"]
+min_review_level = "standard"
+max_at_risk_share = 0.20
+rationale = [
+  "Due-diligence reports relied on by lenders may not be outcome-linked.",
+  "Lead advisory may put up to 20% of the Judgment line at risk; the Signature line never is.",
+]
+
+[[services]]
+key = "financial_due_diligence"
+name = "Financial due diligence"
+deliverable = "Due-diligence report: quality of earnings, net debt, red flags"
+min_consequence = "external_reliance"
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "data_room"
+  title = "Data-room extraction"
+  lane = "ai_led_spot_check"
+  lead = "junior"
+  weight = 0.15
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "qoe"
+  title = "Quality-of-earnings adjustments"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.30
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "red_flags"
+  title = "Red flags (blind)"
+  lane = "human_led_blind"
+  lead = "junior"
+  weight = 0.25
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "report"
+  title = "Report drafting"
+  lane = "ai_drafts_human_edits"
+  lead = "junior"
+  weight = 0.15
+
+  [[services.milestones]]
+  key = "M5"
+  slug = "spa_input"
+  title = "Net debt and SPA input"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.15
+
+[[services]]
+key = "ma_lead_advisory"
+name = "M&A lead advisory"
+deliverable = "Sale process run to signing: screening, valuation range, materials, negotiation support"
+min_consequence = "internal_use"
+outcome_linked_allowed = true
+
+  [[services.milestones]]
+  key = "M1"
+  slug = "screening"
+  title = "Buyer screening"
+  lane = "ai_drafts_human_confirms"
+  lead = "junior"
+  weight = 0.20
+
+  [[services.milestones]]
+  key = "M2"
+  slug = "valuation"
+  title = "Valuation range (blind)"
+  lane = "human_led_blind"
+  lead = "manager"
+  weight = 0.35
+
+  [[services.milestones]]
+  key = "M3"
+  slug = "materials"
+  title = "Information memorandum"
+  lane = "ai_drafts_human_edits"
+  lead = "junior"
+  weight = 0.20
+
+  [[services.milestones]]
+  key = "M4"
+  slug = "negotiation"
+  title = "Negotiation support"
+  lane = "human_led"
+  lead = "manager"
+  weight = 0.25
