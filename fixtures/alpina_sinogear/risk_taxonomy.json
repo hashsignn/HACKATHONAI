@@ -1,0 +1,11 @@
+{
+  "_comment": "Illustrative risk taxonomy used to match a reviewer's blind first pass against the AI's list.",
+  "codes": {
+    "105": "Termination and exit rights",
+    "208": "Counterparty credit / collectability of claims",
+    "306": "Acceptance and inspection",
+    "401": "Hold-up after relationship-specific investment",
+    "402": "Ownership of dedicated assets (tooling)",
+    "403": "Price adjustment and indexation"
+  }
+}

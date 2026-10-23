@@ -1,0 +1,13 @@
+{
+  "_comment": "Planted control items: plausible but FALSE AI findings. The correct handling is to reject them after checking the source. Maintained by the quality team; rotated in production.",
+  "controls": [
+    {
+      "milestone": "risk_screening",
+      "draft": {"kind": "risk", "title": "Supplier can exit on 30 days' notice", "detail": "The supplier may terminate for convenience on 30 days' notice, leaving Alpina without housings mid-redesign.", "clause_ref": "14.2", "confidence": 0.82, "risk_code": "105"}
+    },
+    {
+      "milestone": "benchmark",
+      "draft": {"kind": "deviation", "title": "Payment term shorter than market", "detail": "Payment due within 15 days of invoice; benchmark range is 45-60 days.", "clause_ref": "6.1", "confidence": 0.83, "data": {"contract": "15 days", "market": "45-60 days"}}
+    }
+  ]
+}

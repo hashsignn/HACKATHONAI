@@ -1,0 +1,42 @@
+{
+  "version": "alpina-sinogear-fixture-1",
+  "milestones": {
+    "extraction": [
+      {"kind": "extraction", "title": "Parties", "detail": "Buyer: Alpina Pumps AG (Winterthur). Supplier: SinoGear Ltd (Ningbo).", "clause_ref": "Preamble", "confidence": 0.99, "data": {"value": "Alpina Pumps AG / SinoGear Ltd"}},
+      {"kind": "extraction", "title": "Term", "detail": "3 years from the Effective Date, then 1-year auto-renewals.", "clause_ref": "2.1", "confidence": 0.96, "data": {"value": "3 years + 1-year renewals"}},
+      {"kind": "extraction", "title": "Unit price and currency", "detail": "USD 48.50 per MH-200 housing, FCA Ningbo.", "clause_ref": "5.1", "confidence": 0.95, "data": {"value": "USD 48.50"}},
+      {"kind": "extraction", "title": "Price adjustment", "detail": "Annual adjustment 'in accordance with Annex C'. Annex C is not attached, so the mechanism cannot be read.", "clause_ref": "5.3", "confidence": 0.41, "data": {"value": "unknown (Annex C missing)"}},
+      {"kind": "extraction", "title": "Incoterms", "detail": "FCA Ningbo, Incoterms 2020.", "clause_ref": "7.1", "confidence": 0.93, "data": {"value": "FCA Ningbo (Incoterms 2020)"}},
+      {"kind": "extraction", "title": "Delivery schedule", "detail": "Delivery 'within a reasonable period' after call-off; no lead time is defined.", "clause_ref": "7.3", "confidence": 0.58, "data": {"value": "undefined lead time"}},
+      {"kind": "extraction", "title": "Warranty", "detail": "6 months from delivery, defects in material and workmanship.", "clause_ref": "10.1", "confidence": 0.94, "data": {"value": "6 months"}},
+      {"kind": "extraction", "title": "Delay damages", "detail": "0.5% of delayed value per full week, capped at 2%.", "clause_ref": "8.2", "confidence": 0.92, "data": {"value": "0.5%/week, cap 2%"}},
+      {"kind": "extraction", "title": "Liability cap", "detail": "Aggregate liability limited to 10% of the prior 12 months' purchases.", "clause_ref": "12.1", "confidence": 0.90, "data": {"value": "10% of annual purchases"}},
+      {"kind": "extraction", "title": "Termination rights", "detail": "For cause: 30-day cure period. For convenience: either party, after year 1, on 180 days' notice.", "clause_ref": "14.1-14.2", "confidence": 0.91, "data": {"value": "cause: 30-day cure; convenience: 180 days after year 1"}},
+      {"kind": "extraction", "title": "Governing law", "detail": "Swiss law excluding CISG; ICC arbitration seated in Zurich.", "clause_ref": "18", "confidence": 0.97, "data": {"value": "Swiss law, ICC Zurich"}}
+    ],
+    "benchmark": [
+      {"kind": "deviation", "title": "Warranty below market", "detail": "6-month warranty; comparable custom-component supply agreements in the benchmark set show 12-24 months.", "clause_ref": "10.1", "confidence": 0.88, "data": {"contract": "6 months", "market": "12-24 months"}},
+      {"kind": "deviation", "title": "Delay damages cap below market", "detail": "Cap of 2% of delayed value; benchmark range 5-10%.", "clause_ref": "8.2", "confidence": 0.84, "data": {"contract": "2% cap", "market": "5-10% cap"}},
+      {"kind": "deviation", "title": "Discretionary annual price changes", "detail": "Annex C lets the supplier reset prices yearly at its discretion; market practice is index-linked adjustment with a cap.", "clause_ref": "5.3 / Annex C", "confidence": 0.86, "data": {"contract": "supplier discretion", "market": "index-linked, capped"}},
+      {"kind": "deviation", "title": "Liability cap below market", "detail": "10% of annual purchases; benchmark median is 100% of annual contract value.", "clause_ref": "12.1", "confidence": 0.81, "data": {"contract": "10% of annual purchases", "market": "~100% of annual value"}}
+    ],
+    "risk_screening": [
+      {"kind": "risk", "title": "Price can rise at the supplier's discretion", "detail": "Annex C allows a yearly reset with no index or cap, which conflicts with the client's priority of stable prices.", "clause_ref": "5.3 / Annex C", "confidence": 0.90, "risk_code": "403"},
+      {"kind": "risk", "title": "No acceptance inspection", "detail": "Without an inspection window, defects may only surface after the 6-month warranty has run.", "clause_ref": "9", "confidence": 0.83, "risk_code": "306"},
+      {"kind": "risk", "title": "Hold-up after redesign", "detail": "Alpina redesigns its pumps around these housings, but the supplier owns the dedicated tooling and is not obliged to keep supplying (forecasts non-binding).", "clause_ref": "6.4 / 11.2", "confidence": 0.79, "risk_code": "401"},
+      {"kind": "risk", "title": "Warranty claims may be uncollectible", "detail": "SinoGear's financial standing is unknown and there is no parent guarantee or bond.", "clause_ref": null, "confidence": 0.74, "risk_code": "208"}
+    ],
+    "redlines": [
+      {"kind": "redline", "title": "Index-linked price escalator", "detail": "Replace discretionary price resets with an annual adjustment linked to a published producer-price index, capped at +/-5%.", "clause_ref": "5.3 / Annex C", "confidence": 0.85, "risk_code": "403", "data": {"proposed_text": "The unit price is adjusted once per contract year by the change in the Swiss producer price index (PPI) over the preceding twelve months, capped at +/-5%."}},
+      {"kind": "redline", "title": "Acceptance inspection window", "detail": "Add a 30-day inspection window with replacement at the supplier's cost.", "clause_ref": "9 (new)", "confidence": 0.87, "risk_code": "306", "data": {"proposed_text": "Buyer may inspect each delivery within 30 days of receipt. Non-conforming goods are replaced or credited at Supplier's cost."}},
+      {"kind": "redline", "title": "Higher delay damages and shortfall discount", "detail": "Raise delay damages and add a price discount on short deliveries, following the shortfall-gas precedent.", "clause_ref": "8.2", "confidence": 0.80, "data": {"proposed_text": "Delay damages: 1% per week, capped at 10%. Quantities short-delivered against a confirmed call-off are invoiced at a 15% discount."}},
+      {"kind": "redline", "title": "Minimum supply commitment and tooling ownership", "detail": "Supplier commits to supply forecast volumes; title to dedicated tooling passes to the buyer if the contract ends.", "clause_ref": "6.4 / 11.2", "confidence": 0.82, "risk_code": "401", "data": {"proposed_text": "Supplier shall accept call-offs up to 120% of the rolling forecast. On expiry or termination, title to the MH-200 tooling passes to Buyer against payment of its net book value."}},
+      {"kind": "redline", "title": "Parent guarantee or performance bond", "detail": "Secure warranty and delay claims with a parent guarantee or a bank bond.", "clause_ref": "new", "confidence": 0.78, "risk_code": "208", "data": {"proposed_text": "Supplier shall deliver a parent company guarantee or an on-demand bank performance bond of 10% of the annual purchase value."}}
+    ],
+    "negotiation_priorities": [
+      {"kind": "reference", "title": "Benchmark: price escalator caps", "detail": "Index-linked escalators in the benchmark set are capped between +/-3% and +/-8% per year.", "confidence": 0.90},
+      {"kind": "reference", "title": "Benchmark: tooling transfer", "detail": "Tooling typically transfers at net book value, or free of charge once amortised over the term.", "confidence": 0.86},
+      {"kind": "reference", "title": "Benchmark: delay damages", "detail": "Market range 0.5-1% per week, capped at 5-10% of the delayed value.", "confidence": 0.88}
+    ]
+  }
+}
