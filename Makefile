@@ -1,4 +1,4 @@
-.PHONY: install test lint format docs demo serve serve-pricing serve-live
+.PHONY: install test lint format docs demo serve serve-pricing serve-live showcase
 
 install:            ## install the package with dev tools
 	pip install -e ".[dev]"
@@ -28,3 +28,6 @@ serve-pricing:      ## console seeded at intake, so the manager can confirm the 
 
 serve-live:         ## console with an empty, persistent ledger
 	COUNTERSIGN_DB=countersign.db uvicorn countersign.api.app:create_app --factory
+
+showcase:           ## animated pitch showcase at http://localhost:8080 (no backend needed)
+	python -m http.server 8080 -d showcase

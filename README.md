@@ -84,6 +84,16 @@ In the console:
 
 The [demo script](docs/demo-script.md) is a three-minute click path for the pitch.
 
+## Pitch showcase
+
+[`showcase/`](showcase/) is a scripted, animated walk through the same Alpina case for the stage: the agent swarm, the blind first pass, the planted check, milestone signatures and the pricing. It has no backend and no network dependencies, so open `showcase/index.html` directly in a browser, or run:
+
+```bash
+make showcase   # http://localhost:8080
+```
+
+**Live** mode (default): you click every human action, or press → to have it done for you. **Auto** mode (`A`, or `?auto` in the URL) plays itself in about three minutes. Keys: → next, ← back, `R` restart, `S` sound, `F` fullscreen. See [showcase/README.md](showcase/README.md).
+
 ## Architecture
 
 ```mermaid
