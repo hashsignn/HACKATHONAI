@@ -1,7 +1,7 @@
 """JSON read models for the API. Pure functions of state; no writes, no secrets.
 
-Nothing here can leak a sealed AI list or the identity of a planted control: neither
-is part of the folded state until its reveal event exists in the ledger.
+Nothing here can leak a sealed AI list or the identity of a planted check: neither is
+part of the folded state until its reveal event exists in the ledger.
 """
 
 from __future__ import annotations
@@ -9,7 +9,10 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
+from ..domain.catalogue import Catalogue
 from ..domain.people import Directory
+from ..domain.policy import POLICIES
+from ..domain.pricing import PriceList
 from ..projections.audit import TrailSummary
 from ..projections.billing import Invoice
 from ..projections.learning import gap_analysis
@@ -29,12 +32,14 @@ def milestone_view(
     state: EngagementState, ms: MilestoneState, directory: Directory
 ) -> dict[str, Any]:
     gap = gap_analysis(ms)
+    policy = state.policy
     return {
         "key": ms.spec.key,
         "title": ms.spec.title,
         "lane": ms.spec.lane.value,
-        "signer_role": ms.spec.signer_role.value,
-        "status": ms.status(state.policy).value,
+        "lead": ms.spec.lead.value,
+        "weight": ms.spec.weight,
+        "status": ms.status(policy).value,
         "started": ms.started,
         "provider": ms.provider,
         "sealed": {"count": ms.sealed_count, "commitment": ms.sealed_commitment}
@@ -59,16 +64,18 @@ def milestone_view(
         "controls": ms.controls.model_dump(mode="json") if ms.controls else None,
         "accepts_controls": ms.spec.lane.accepts_controls,
         "escalation": ms.escalation.model_dump(mode="json") if ms.escalation else None,
-        "priorities": [a.model_dump(mode="json") for a in ms.priorities or []],
-        "priorities_by": _name(directory, ms.priorities_by),
-        "required_signers": [
+        "conclusions": [c.model_dump(mode="json") for c in ms.conclusions or []],
+        "conclusions_by": _name(directory, ms.conclusions_by),
+        "required_signers": []
+        if policy is None
+        else [
             {
-                "role": r.value,
-                "user": state.member(r),
-                "name": _name(directory, state.member(r)),
-                "signed": r in ms.signed_roles(),
+                "slot": s.value,
+                "user": state.member(s),
+                "name": _name(directory, state.member(s)),
+                "signed": s in ms.signed_slots(),
             }
-            for r in ms.required_signer_roles(state.policy)
+            for s in ms.required_signer_slots(policy)
         ],
         "signatures": [
             {**sig.model_dump(mode="json"), "signer_name": _name(directory, sig.signer)}
@@ -81,32 +88,56 @@ def milestone_view(
 
 def engagement_view(state: EngagementState, directory: Directory) -> dict[str, Any]:
     o = state.opened
+    p = state.pricing
+    policy = state.policy
     return {
         "id": state.id,
         "client": o.client,
         "counterparty": o.counterparty,
         "matter": o.matter,
-        "workflow": state.workflow.key,
-        "workflow_title": state.workflow.title,
-        "tier": o.tier.value,
-        "review_level": o.review_level.value,
-        "review_rationale": o.policy_rationale,
-        "policy": {
-            "confidence_threshold": state.policy.confidence_threshold,
-            "spot_check_rate": state.policy.spot_check_rate,
-            "controls_per_engagement": state.policy.controls_per_engagement,
-            "final_signer": state.policy.final_signer.value,
-        },
+        "service_id": state.service.id,
+        "service": state.service.name,
+        "deliverable": state.service.deliverable,
+        "department": state.department.name,
         "intake": o.intake.model_dump(mode="json"),
-        "team": {r.value: {"id": uid, "name": _name(directory, uid)} for r, uid in o.team.items()},
+        "recommendation": {
+            "complexity": o.recommended_complexity.value,
+            "complexity_rationale": o.complexity_rationale,
+            "consequence": o.recommended_consequence.value,
+            "consequence_rationale": o.consequence_rationale,
+            "option": o.requested_option.value,
+        },
+        "pricing": None
+        if p is None
+        else {
+            **p.model_dump(mode="json"),
+            "confirmed_by": _name(directory, state.pricing_by),
+        },
+        "policy": None
+        if policy is None
+        else {
+            "level": policy.level.value,
+            "confidence_threshold": policy.confidence_threshold,
+            "spot_check_rate": policy.spot_check_rate,
+            "controls_per_engagement": policy.controls_per_engagement,
+        },
+        "team": {s.value: {"id": uid, "name": _name(directory, uid)} for s, uid in o.team.items()},
         "status": state.status.value,
         "milestones": [milestone_view(state, ms, directory) for ms in state.milestones.values()],
-        "released": None
-        if not state.released
+        "final_signers_outstanding": [
+            {"slot": s.value, "user": state.member(s), "name": _name(directory, state.member(s))}
+            for s in state.final_signers_outstanding()
+        ],
+        "deliverable_signatures": [
+            {**s.model_dump(mode="json"), "signer_name": _name(directory, s.signer)}
+            for s in state.deliverable_signatures
+        ],
+        "released_at": state.released_at,
+        "outcome": None
+        if state.outcome is None
         else {
-            **state.released.model_dump(mode="json"),
-            "signer_name": _name(directory, state.released.signer),
-            "at": state.released_at,
+            **state.outcome.model_dump(mode="json"),
+            "recorded_by": _name(directory, state.outcome_by),
         },
         "stopped": None
         if not state.stopped
@@ -115,8 +146,83 @@ def engagement_view(state: EngagementState, directory: Directory) -> dict[str, A
     }
 
 
+def catalogue_view(catalogue: Catalogue, prices: PriceList) -> dict[str, Any]:
+    depts = []
+    for d in catalogue.departments.values():
+        dp = prices.departments[d.key]
+        depts.append(
+            {
+                "key": d.key,
+                "name": d.name,
+                "summary": d.summary,
+                "policy": {
+                    "options": [o.value for o in d.policy.options],
+                    "min_review_level": d.policy.min_review_level.value,
+                    "max_at_risk_share": d.policy.max_at_risk_share,
+                    "rationale": list(d.policy.rationale),
+                    "signature_slots": {
+                        k.value: [s.value for s in v] for k, v in d.policy.signature_slots.items()
+                    },
+                },
+                "services": [
+                    {
+                        "id": s.id,
+                        "name": s.name,
+                        "deliverable": s.deliverable,
+                        "min_consequence": s.min_consequence.value,
+                        "outcome_linked_allowed": s.outcome_linked_allowed,
+                        "notes": s.notes,
+                        "milestones": [
+                            {
+                                "key": m.key,
+                                "title": m.title,
+                                "lane": m.lane.value,
+                                "lead": m.lead.value,
+                                "weight": m.weight,
+                            }
+                            for m in s.milestones
+                        ],
+                        "prices": {
+                            "judgment": {
+                                k.value: v for k, v in dp.services[s.key].judgment.items()
+                            },
+                            "signature": {
+                                k.value: v
+                                for k, v in (dp.services[s.key].signature or dp.signature).items()
+                            },
+                            "historical_fee": {
+                                k.value: v for k, v in dp.services[s.key].historical_fee.items()
+                            },
+                            "reference_hours": {
+                                k.value: v for k, v in dp.services[s.key].reference_hours.items()
+                            },
+                        },
+                    }
+                    for s in d.services.values()
+                ],
+            }
+        )
+    return {
+        "price_list_version": prices.version,
+        "currency": prices.currency,
+        "client_platform_factor": prices.client_platform_factor,
+        "retainer_discount": prices.retainer_discount,
+        "retainer_deliverables": prices.retainer_deliverables,
+        "review_levels": {
+            k.value: {
+                "confidence_threshold": v.confidence_threshold,
+                "spot_check_rate": v.spot_check_rate,
+                "controls_per_engagement": v.controls_per_engagement,
+                "manager_countersigns_milestones": v.manager_countersigns_milestones,
+            }
+            for k, v in POLICIES.items()
+        },
+        "departments": depts,
+    }
+
+
 def invoice_view(inv: Invoice) -> dict[str, Any]:
-    return {**asdict(inv), "saving_vs_hourly": inv.saving_vs_hourly}
+    return asdict(inv)
 
 
 def trail_view(t: TrailSummary) -> dict[str, Any]:

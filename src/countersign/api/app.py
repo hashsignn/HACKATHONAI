@@ -28,14 +28,28 @@ from ..domain.errors import (
     NotFound,
     SealedError,
 )
-from ..domain.models import BlindFinding, Decision, Intake, NegotiationAsk, ReasonCode, Role, Tier
+from ..domain.models import (
+    AtRisk,
+    BlindFinding,
+    CommercialOption,
+    ComplexityTier,
+    Conclusion,
+    Consequence,
+    Decision,
+    Intake,
+    ReasonCode,
+    Role,
+    Slot,
+)
 from ..domain.people import User
+from ..domain.policy import recommend
+from ..domain.pricing import build_quote
 from ..projections.audit import build_trail, render_markdown
 from ..projections.billing import build_invoice
 from ..projections.quality import reviewer_quality
 from ..projections.state import EngagementState
 from ..scenario import STAGES, load_contract, run_alpina
-from .views import engagement_view, invoice_view, trail_view
+from .views import catalogue_view, engagement_view, invoice_view, trail_view
 
 WEB_DIR = PACKAGE_DIR / "web"
 
@@ -44,19 +58,41 @@ class OpenEngagementRequest(BaseModel):
     client: str = Field(min_length=2, max_length=200)
     counterparty: str = Field(min_length=2, max_length=200)
     matter: str = Field(min_length=2, max_length=500)
-    workflow: str = "spa_contract_review"
-    tier: Tier = Tier.ASSISTED
+    service_id: str
+    requested_option: CommercialOption = CommercialOption.PER_DELIVERABLE
     intake: Intake
-    team: dict[Role, str]
-    contract_text: str = Field(min_length=1)
+    team: dict[Slot, str]
+    document_text: str = Field(min_length=1)
+
+
+class ConfirmPricingRequest(BaseModel):
+    complexity: ComplexityTier | None = None
+    consequence: Consequence | None = None
+    option: CommercialOption | None = None
+    at_risk: AtRisk | None = None
+    override_reason: str | None = Field(default=None, max_length=1000)
+
+
+class QuoteRequest(BaseModel):
+    service_id: str
+    intake: Intake = Field(default_factory=Intake)
+    option: CommercialOption = CommercialOption.PER_DELIVERABLE
+    complexity: ComplexityTier | None = None  # default: the platform's recommendation
+    consequence: Consequence | None = None
+    at_risk: AtRisk | None = None
+
+
+class OutcomeRequest(BaseModel):
+    value: float
+    evidence_ref: str = Field(min_length=3, max_length=300)
 
 
 class BlindAssessmentRequest(BaseModel):
     findings: list[BlindFinding] = Field(min_length=1, max_length=30)
 
 
-class PrioritiesRequest(BaseModel):
-    asks: list[NegotiationAsk] = Field(min_length=1, max_length=30)
+class ConclusionsRequest(BaseModel):
+    conclusions: list[Conclusion] = Field(min_length=1, max_length=30)
 
 
 class StopRequest(BaseModel):
@@ -84,9 +120,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     container = container or _seeded_container(settings, settings.seed)
     app = FastAPI(
         title="Countersign",
-        version="0.1.0",
-        description="Every AI step decided, reasoned and signed by a named person. "
-        "The signed milestone is the billable unit.",
+        version="0.2.0",
+        description="KPMG's operating system for signed judgment: every AI step is decided, "
+        "reasoned and signed by a named person, and every deliverable is billed as Judgment "
+        "plus Signature.",
     )
     app.state.container = container
 
@@ -114,17 +151,58 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     # ------------------------------------------------------------ reference
     @app.get("/api/users")
     def users() -> list[dict]:
-        return [{"id": u.id, "name": u.name, "role": u.role.value} for u in C().directory.all()]
+        return [
+            {
+                "id": u.id,
+                "name": u.name,
+                "role": u.role.value,
+                "department": u.department,
+                "ai_certified": u.ai_certified,
+            }
+            for u in C().directory.all()
+        ]
 
     @app.get("/api/meta")
     def meta() -> dict:
-        taxonomy_path = C().settings.fixture_dir / "risk_taxonomy.json"
+        taxonomy_path = C().settings.alpina_dir / "risk_taxonomy.json"
         taxonomy = json.loads(taxonomy_path.read_text())["codes"] if taxonomy_path.exists() else {}
         return {
             "reason_codes": [r.value for r in ReasonCode],
             "risk_taxonomy": taxonomy,
             "seed_stages": STAGES,
             "demo": bool(settings.seed),
+        }
+
+    # ------------------------------------------------------------- firm level
+    @app.get("/api/catalogue")
+    def catalogue() -> dict:
+        """The published service catalogue, policy packs and price list."""
+        return catalogue_view(C().catalogue, C().prices)
+
+    @app.post("/api/quote")
+    def quote(body: QuoteRequest) -> dict:
+        """Price any service in any department, with the guardrails applied live."""
+        service = C().catalogue.service(body.service_id)
+        rec = recommend(body.intake, service)
+        q = build_quote(
+            C().catalogue,
+            C().prices,
+            body.service_id,
+            body.complexity or rec.complexity,
+            body.consequence or rec.consequence,
+            body.option,
+            body.intake,
+            body.at_risk,
+        )
+        return {
+            "quote": q.as_dict(),
+            "allowed": q.allowed,
+            "recommendation": {
+                "complexity": rec.complexity.value,
+                "complexity_rationale": list(rec.complexity_rationale),
+                "consequence": rec.consequence.value,
+                "consequence_rationale": list(rec.consequence_rationale),
+            },
         }
 
     # ------------------------------------------------------------ engagements
@@ -140,7 +218,9 @@ def create_app(settings: Settings | None = None, container: Container | None = N
                         "client": state.opened.client,
                         "matter": state.opened.matter,
                         "status": state.status.value,
-                        "review_level": state.opened.review_level.value,
+                        "service": state.service.name,
+                        "department": state.department.name,
+                        "review_level": state.pricing.review_level.value if state.pricing else None,
                     }
                 )
         return out
@@ -152,17 +232,30 @@ def create_app(settings: Settings | None = None, container: Container | None = N
             client=body.client,
             counterparty=body.counterparty,
             matter=body.matter,
-            workflow=body.workflow,
-            tier=body.tier,
+            service_id=body.service_id,
+            requested_option=body.requested_option,
             intake=body.intake,
             team=body.team,
-            contract_text=body.contract_text,
+            document_text=body.document_text,
         )
         return engagement_view(state, C().directory)
 
     @app.get("/api/engagements/{eid}")
     def get_engagement(eid: str, user: UserDep) -> dict:
         return engagement_view(readable(eid, user), C().directory)
+
+    @app.post("/api/engagements/{eid}/pricing")
+    def confirm_pricing(eid: str, body: ConfirmPricingRequest, user: UserDep) -> dict:
+        state = C().service.confirm_pricing(
+            user.id,
+            eid,
+            complexity=body.complexity,
+            consequence=body.consequence,
+            option=body.option,
+            at_risk=body.at_risk,
+            override_reason=body.override_reason,
+        )
+        return engagement_view(state, C().directory)
 
     @app.post("/api/engagements/{eid}/milestones/{key}/start")
     def start(eid: str, key: str, user: UserDep) -> dict:
@@ -178,10 +271,10 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     def decide(eid: str, key: str, item_id: str, body: Decision, user: UserDep) -> dict:
         return engagement_view(C().service.decide(user.id, eid, key, item_id, body), C().directory)
 
-    @app.post("/api/engagements/{eid}/milestones/{key}/priorities")
-    def priorities(eid: str, key: str, body: PrioritiesRequest, user: UserDep) -> dict:
+    @app.post("/api/engagements/{eid}/milestones/{key}/conclusions")
+    def conclusions(eid: str, key: str, body: ConclusionsRequest, user: UserDep) -> dict:
         return engagement_view(
-            C().service.set_priorities(user.id, eid, key, body.asks), C().directory
+            C().service.record_conclusions(user.id, eid, key, body.conclusions), C().directory
         )
 
     @app.post("/api/engagements/{eid}/milestones/{key}/sign")
@@ -195,9 +288,15 @@ def create_app(settings: Settings | None = None, container: Container | None = N
             "engagement": engagement_view(C().service.load(eid), C().directory),
         }
 
-    @app.post("/api/engagements/{eid}/release")
-    def release(eid: str, user: UserDep) -> dict:
-        return engagement_view(C().service.release(user.id, eid), C().directory)
+    @app.post("/api/engagements/{eid}/sign-deliverable")
+    def sign_deliverable(eid: str, user: UserDep) -> dict:
+        return engagement_view(C().service.sign_deliverable(user.id, eid), C().directory)
+
+    @app.post("/api/engagements/{eid}/outcome")
+    def outcome(eid: str, body: OutcomeRequest, user: UserDep) -> dict:
+        return engagement_view(
+            C().service.record_outcome(user.id, eid, body.value, body.evidence_ref), C().directory
+        )
 
     @app.post("/api/engagements/{eid}/stop")
     def stop(eid: str, body: StopRequest, user: UserDep) -> dict:
@@ -207,7 +306,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     @app.get("/api/engagements/{eid}/invoice")
     def invoice(eid: str, user: UserDep) -> dict:
         state = readable(eid, user, internal=False)
-        return invoice_view(build_invoice(state, C().rate_card, C().directory))
+        return invoice_view(build_invoice(state, C().directory))
 
     @app.get("/api/engagements/{eid}/trail")
     def trail(eid: str, user: UserDep) -> dict:
@@ -314,7 +413,7 @@ def _seeded_container(settings: Settings, stage: str | None) -> Container:
     clock = Clock(datetime.now(UTC) - timedelta(hours=6))
     container = build_container(settings, clock=clock)
     run_alpina(
-        container.service, load_contract(settings.fixture_dir), until=stage, tick=clock.advance
+        container.service, load_contract(settings.alpina_dir), until=stage, tick=clock.advance
     )
     clock.release()
     return container

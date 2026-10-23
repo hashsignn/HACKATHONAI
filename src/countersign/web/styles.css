@@ -50,13 +50,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------------------------------------------------------------- top bar */
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s5);
+  display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: var(--s5);
   padding: var(--s3) var(--s5);
   background: var(--paper); border-bottom: 1px solid var(--rule);
 }
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: 600; font-size: 17px; color: var(--ink); }
 .brand-mark { width: 26px; height: 26px; }
 .matter { min-width: 0; }
+.tabs { display: flex; gap: 2px; padding: 3px; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 8px; }
+.tabs button { border: 0; background: none; padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--graphite); cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 0 0 1px var(--rule); }
 .matter strong { font-weight: 600; }
 .matter .sub { color: var(--graphite); font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-right { display: flex; gap: var(--s4); align-items: center; }
@@ -228,6 +231,50 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rules { margin: var(--s3) 0 0; padding-left: 1.1em; }
 .rules li + li { margin-top: 4px; }
 
+/* --------------------------------------------------------- intake & pricing */
+.rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); margin-top: var(--s3); }
+.rec-grid > div { padding: var(--s3) var(--s4); border: 1px solid var(--rule); border-radius: var(--r-control); }
+.rec-grid .rules { font-size: 14px; color: var(--graphite); }
+.pricing-form { display: grid; gap: var(--s3); padding: var(--s4); border: 1px solid var(--ink); border-radius: var(--r-panel); background: var(--ink-wash); }
+.form-row { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: end; }
+.form-row > .field { flex: 1 1 160px; }
+.form-row > .field.wide { flex: 2 1 320px; }
+.quote-mini { padding: var(--s3); border-radius: var(--r-control); background: var(--paper); color: var(--ink-text); }
+.quote-mini.bad { background: var(--oxblood-wash); color: var(--oxblood); }
+
+/* ----------------------------------------------------------------- firm view */
+.quote-builder .quote-form { display: grid; gap: var(--s3); margin-top: var(--s4); }
+.check { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--ink); }
+.atrisk { border: 1px dashed var(--ochre); border-radius: var(--r-panel); padding: var(--s3) var(--s4) var(--s4); display: grid; gap: var(--s3); }
+.atrisk legend { color: var(--ochre); font-weight: 500; font-size: 14px; padding: 0 6px; }
+.policy-pack { margin-top: var(--s4); padding: var(--s3) var(--s4); background: var(--paper-2); border-radius: var(--r-control); }
+.policy-pack .tag { display: inline-block; margin: 2px 0; }
+.policy-pack .rules { font-size: 14px; }
+.dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--s4); margin-top: var(--s4); }
+.dept { padding: var(--s4); border: 1px solid var(--rule); border-radius: var(--r-panel); display: grid; gap: var(--s2); align-content: start; }
+.dept > .muted { font-size: 13.5px; }
+.svc { display: grid; gap: 4px; text-align: left; padding: var(--s3); border: 1px solid var(--rule); border-radius: var(--r-control); background: var(--paper); cursor: pointer; }
+.svc:hover { border-color: var(--ink); }
+.svc-name { font-weight: 500; }
+.svc-price { font-size: 13px; font-variant-numeric: tabular-nums; }
+.lanes { display: flex; gap: 4px; }
+.lane-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; }
+.lane-ai_led_spot_check { background: var(--graphite-soft); }
+.lane-ai_drafts_human_confirms { background: #8b93a5; }
+.lane-ai_drafts_human_edits { background: linear-gradient(90deg, #8b93a5 50%, var(--ink) 50%); }
+.lane-human_led_blind { background: var(--paper); box-shadow: inset 0 0 0 3px var(--ink); }
+.lane-human_led { background: var(--ink); }
+.lane-legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: var(--s3); font-size: 13px; color: var(--graphite); }
+.lane-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.quote-result.refused table, .quote-result.refused .compare { opacity: .45; }
+.violations { display: grid; gap: var(--s2); margin-bottom: var(--s3); }
+.violations .notice { margin: 0; }
+.facts.small { font-size: 13.5px; margin-top: var(--s3); gap: 4px var(--s4); }
+.rules.small { font-size: 13px; color: var(--graphite); }
+.invoice .line-head td { font-weight: 500; }
+.invoice .compare.dearer { background: var(--ochre-wash); color: var(--ochre); }
+
 /* -------------------------------------------------------------- priorities */
 .prio-row { display: grid; grid-template-columns: 1.3fr 150px 1fr 1.3fr auto; gap: var(--s2); align-items: end; }
 .prio-list { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: var(--s2); }
@@ -282,12 +329,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ------------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
+  .topbar { grid-template-columns: auto auto minmax(0, 1fr); }
+  .topbar-right { grid-column: 1 / -1; justify-content: flex-end; }
   .layout { grid-template-columns: 220px minmax(0, 1fr); }
   .layout--wide { grid-template-columns: minmax(0, 1fr); }
   .side { grid-column: 1 / -1; position: static; grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 820px) {
   .topbar { grid-template-columns: minmax(0, 1fr); gap: var(--s2); padding: var(--s3) var(--s4); }
+  .tabs { justify-self: start; }
+  .rec-grid { grid-template-columns: 1fr; }
   .topbar-right { flex-wrap: wrap; gap: var(--s2); }
   .acting select, .demo select { width: auto; max-width: 100%; }
   .layout, .layout--wide { grid-template-columns: minmax(0, 1fr); padding: var(--s4); gap: var(--s4); }
