@@ -1,9 +1,9 @@
 """The decision record's event types.
 
 Every state change is one of these events, appended to the hash-chained ledger.
-Current state, invoices, the client's audit trail and reviewer metrics are all
-*derived* from this list (see ``projections``), which is what makes one record
-serve as audit trail, billing basis and evidence for staff evaluation at once.
+Current state, the invoice, the client's trail and reviewer metrics are all *derived*
+from this list (see ``projections``), which is what makes one record serve as audit
+trail, billing basis and evidence for staff evaluation at once.
 
 The ledger envelope (sequence, actor, timestamp, hashes) is added by ``ledger.store``;
 these models are only the payloads.
@@ -16,31 +16,58 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, TypeAdapter
 
 from .models import (
+    AtRisk,
     BlindFinding,
+    CommercialOption,
+    ComplexityTier,
+    Conclusion,
+    Consequence,
     Decision,
     Intake,
     Item,
-    NegotiationAsk,
     ReviewLevel,
     Role,
-    Tier,
+    Slot,
 )
 
 
 class EngagementOpened(BaseModel):
+    """Intake recorded, with the platform's recommendation. Nothing is priced yet."""
+
     type: Literal["engagement_opened"] = "engagement_opened"
     engagement_id: str
     client: str
     counterparty: str
     matter: str
-    workflow: str
-    tier: Tier
+    service_id: str
     intake: Intake
+    requested_option: CommercialOption
+    recommended_complexity: ComplexityTier
+    complexity_rationale: list[str]
+    recommended_consequence: Consequence
+    consequence_rationale: list[str]
+    team: dict[Slot, str]  # slot -> user id
+    document_digest: str  # sha256 of the document under review
+
+
+class PricingConfirmed(BaseModel):
+    """A named manager or partner fixes the tiers and the commercial option.
+
+    Any departure from the recommendation needs a reason. The quote is stored verbatim,
+    so the invoice can never drift from what was agreed.
+    """
+
+    type: Literal["pricing_confirmed"] = "pricing_confirmed"
+    complexity: ComplexityTier
+    consequence: Consequence
+    option: CommercialOption
+    at_risk: AtRisk | None = None
+    overrides: list[str] = Field(default_factory=list)
+    override_reason: str | None = None
     review_level: ReviewLevel
-    policy_rationale: list[str]
-    team: dict[Role, str]  # role -> user id
-    rate_card_version: str
-    contract_digest: str  # sha256 of the document under review
+    review_rationale: list[str]
+    final_signers: list[Slot]
+    quote: dict
 
 
 class MilestoneStarted(BaseModel):
@@ -48,7 +75,7 @@ class MilestoneStarted(BaseModel):
     milestone: str
     provider: str
     provider_version: str
-    controls_commitment: str | None = None  # sealed list of planted control item ids
+    controls_commitment: str | None = None  # sealed list of planted-check item ids
 
 
 class ProposalsGenerated(BaseModel):
@@ -88,7 +115,7 @@ class ItemDecided(BaseModel):
 
 
 class ControlsEvaluated(BaseModel):
-    """Reveal of the planted control items and whether each was caught."""
+    """Reveal of the planted checks and whether each was caught."""
 
     type: Literal["controls_evaluated"] = "controls_evaluated"
     milestone: str
@@ -102,19 +129,20 @@ class MilestoneEscalated(BaseModel):
     type: Literal["milestone_escalated"] = "milestone_escalated"
     milestone: str
     reason: str
-    required_role: Role
+    required_slot: Slot
 
 
-class PrioritiesSet(BaseModel):
-    type: Literal["priorities_set"] = "priorities_set"
+class ConclusionsRecorded(BaseModel):
+    type: Literal["conclusions_recorded"] = "conclusions_recorded"
     milestone: str
-    asks: list[NegotiationAsk]
+    conclusions: list[Conclusion]
 
 
 class MilestoneSigned(BaseModel):
     type: Literal["milestone_signed"] = "milestone_signed"
     milestone: str
     signer: str
+    slot: Slot
     role: Role
     digest: str  # sha256 over the milestone's items, decisions and the ledger head
     signature: str  # Ed25519 over the digest, hex
@@ -122,13 +150,30 @@ class MilestoneSigned(BaseModel):
     escalated: bool = False
 
 
-class EngagementReleased(BaseModel):
-    type: Literal["engagement_released"] = "engagement_released"
+class DeliverableSigned(BaseModel):
+    """The Signature line: a named person signs the deliverable and KPMG carries the
+    liability. Regulatory deliverables need two of these (partner and quality reviewer)."""
+
+    type: Literal["deliverable_signed"] = "deliverable_signed"
     signer: str
+    slot: Slot
     role: Role
     digest: str
     signature: str
     key_id: str
+
+
+class DeliverableReleased(BaseModel):
+    type: Literal["deliverable_released"] = "deliverable_released"
+
+
+class OutcomeMeasured(BaseModel):
+    """Settles the at-risk part of an outcome-linked Judgment line."""
+
+    type: Literal["outcome_measured"] = "outcome_measured"
+    value: float
+    evidence_ref: str
+    payout_ratio: float
 
 
 class EngagementStopped(BaseModel):
@@ -140,6 +185,7 @@ class EngagementStopped(BaseModel):
 
 DomainEvent = Annotated[
     EngagementOpened
+    | PricingConfirmed
     | MilestoneStarted
     | ProposalsGenerated
     | ProposalsSealed
@@ -148,9 +194,11 @@ DomainEvent = Annotated[
     | ItemDecided
     | ControlsEvaluated
     | MilestoneEscalated
-    | PrioritiesSet
+    | ConclusionsRecorded
     | MilestoneSigned
-    | EngagementReleased
+    | DeliverableSigned
+    | DeliverableReleased
+    | OutcomeMeasured
     | EngagementStopped,
     Field(discriminator="type"),
 ]
