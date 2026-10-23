@@ -81,24 +81,21 @@ def test_caught_control_lets_the_junior_sign(run_until):
     assert ms.signatures[0].signer == JUNIOR and not ms.signatures[0].escalated
 
 
-def test_standard_review_plants_no_controls(svc, contract, clock):
-    from countersign.domain.models import Intake, Role, Tier
+def test_standard_review_plants_no_controls(svc, contract):
+    from countersign.domain.models import CommercialOption, Intake
+    from tests.helpers import TEAM
 
-    state = svc.open_engagement(
+    svc.open_engagement(
         "marco.rossi",
+        engagement_id="ENG-STD",
         client="Small Co",
         counterparty="Vendor",
-        matter="Standard NDA-sized deal",
-        workflow="spa_contract_review",
-        tier=Tier.ASSISTED,
-        intake=Intake(
-            client_role="buyer",
-            client_importance="standard",
-            term_years=1,
-            annual_value_chf=100_000,
-        ),
-        team={Role.JUNIOR: JUNIOR, Role.MANAGER: MANAGER},
-        contract_text=contract,
-        engagement_id="ENG-STD",
+        matter="Standard supply terms",
+        service_id="legal.contract_review",
+        requested_option=CommercialOption.PER_DELIVERABLE,
+        intake=Intake(),
+        team=TEAM,
+        document_text=contract,
     )
+    state = svc.confirm_pricing("marco.rossi", "ENG-STD")
     assert state.policy.controls_per_engagement == 0

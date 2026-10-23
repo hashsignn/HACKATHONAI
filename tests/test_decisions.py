@@ -23,7 +23,7 @@ def test_reject_and_edit_need_a_reason():
 
 
 def test_low_confidence_items_route_to_a_person(run_until, svc):
-    run_until("opened")
+    run_until("priced")
     state = svc.start_milestone(JUNIOR, ENGAGEMENT_ID, "M1")
     routes = {s.item.title: s.item.route for s in state.milestone("M1").items.values()}
     assert routes["Price adjustment"] is Route.LOW_CONFIDENCE
@@ -34,14 +34,14 @@ def test_low_confidence_items_route_to_a_person(run_until, svc):
 
 
 def test_cannot_sign_with_open_items(run_until, svc):
-    run_until("opened")
+    run_until("priced")
     svc.start_milestone(JUNIOR, ENGAGEMENT_ID, "M1")
     with pytest.raises(Conflict, match="still need a decision"):
         svc.sign_milestone(JUNIOR, ENGAGEMENT_ID, "M1")
 
 
 def test_milestones_run_in_order(run_until, svc):
-    run_until("opened")
+    run_until("priced")
     with pytest.raises(Conflict, match="must be signed"):
         svc.start_milestone(JUNIOR, ENGAGEMENT_ID, "M2")
 
@@ -85,9 +85,9 @@ def test_signature_is_by_name_and_verifies(container, run_until):
     assert not container.keyring.verify(MANAGER, sig.digest, sig.signature)
 
 
-def test_only_the_final_signer_releases(run_until, svc):
+def test_only_the_final_signer_signs_the_deliverable(run_until, svc):
     run_until("M5")
     with pytest.raises(Forbidden):
-        svc.release(JUNIOR, ENGAGEMENT_ID)
-    state = svc.release(MANAGER, ENGAGEMENT_ID)
-    assert state.released and state.released.signer == MANAGER
+        svc.sign_deliverable(JUNIOR, ENGAGEMENT_ID)
+    state = svc.sign_deliverable(MANAGER, ENGAGEMENT_ID)
+    assert state.released and state.deliverable_signatures[0].signer == MANAGER

@@ -5,20 +5,27 @@ from datetime import UTC, datetime
 
 import pytest
 
+from countersign.ai.scripted import ScriptedProvider
 from countersign.bootstrap import Container, Settings, build_container
 from countersign.clock import Clock
 from countersign.scenario import load_contract, run_alpina
+from tests.helpers import CompositeProvider
 
 START = datetime(2026, 10, 21, 7, 0, tzinfo=UTC)
 
 
 def make_container(seed_salts: bool = True) -> tuple[Container, Clock]:
+    """A fresh in-memory platform on a pinned clock with deterministic salts.
+
+    Legal contract review uses the scripted Alpina fixtures; every other service gets a
+    small generic provider, so engagements in any department can be run end to end.
+    """
     clock = Clock(START)
     counter = itertools.count()
     salts = (lambda: f"salt-{next(counter):04d}") if seed_salts else None
-    container = build_container(
-        Settings(db_path=":memory:", seed=None), clock=clock, salt_factory=salts
-    )
+    settings = Settings(db_path=":memory:", seed=None)
+    provider = CompositeProvider(ScriptedProvider(settings.fixtures_root))
+    container = build_container(settings, clock=clock, provider=provider, salt_factory=salts)
     return container, clock
 
 
@@ -44,7 +51,7 @@ def svc(container):
 
 @pytest.fixture
 def contract(container) -> str:
-    return load_contract(container.settings.fixture_dir)
+    return load_contract(container.settings.alpina_dir)
 
 
 @pytest.fixture

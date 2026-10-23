@@ -11,7 +11,7 @@ from countersign.scenario import ENGAGEMENT_ID, JUNIOR, MANAGER
 def test_full_scenario_trail(container, run_until):
     state = run_until("released")
     assert state.status is EngagementStatus.RELEASED
-    assert state.opened.review_level.value == "elevated"
+    assert state.pricing.review_level.value == "elevated"
 
     trail = build_trail(
         state, container.store.verify(ENGAGEMENT_ID), container.directory, container.keyring
@@ -24,7 +24,9 @@ def test_full_scenario_trail(container, run_until):
     assert trail.escalations == 0
     assert trail.chain_ok
     assert len(trail.signatures) == 5 and all(s.verified for s in trail.signatures)
-    assert trail.released_by.startswith("Marco Rossi")
+    assert trail.deliverable_signed_by == ["Marco Rossi (manager)"]
+    assert trail.complexity == "tier2" and trail.consequence == "internal_use"
+    assert trail.pricing_confirmed_by == "Marco Rossi" and trail.pricing_overrides == []
     assert any("208, 401" in p for p in trail.learning_points)
 
     md = render_markdown(trail)
