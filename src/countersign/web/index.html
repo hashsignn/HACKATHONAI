@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Countersign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M9 17.5c2.5-4 4.5-4.5 6-1.5s3.5 2.5 8-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Countersign</span>
+    </div>
+    <div class="matter" id="matter"></div>
+    <div class="topbar-right">
+      <label class="acting">
+        <span>Acting as</span>
+        <select id="user-select" aria-label="Acting as"></select>
+      </label>
+      <label class="demo" id="demo-reset" hidden>
+        <span>Demo</span>
+        <select id="reset-select" aria-label="Reset demo to a stage"></select>
+      </label>
+    </div>
+  </header>
+
+  <div class="layout" id="layout">
+    <nav class="rail" id="rail" aria-label="Milestones"></nav>
+    <main class="work" id="work" tabindex="-1"></main>
+    <aside class="side" id="side"></aside>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
