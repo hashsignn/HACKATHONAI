@@ -1,0 +1,21 @@
+# Fictional people for the prototype. Production: the firm's SSO / identity provider.
+
+[users."lea.brunner"]
+name = "Lea Brunner"
+role = "junior"
+
+[users."marco.rossi"]
+name = "Marco Rossi"
+role = "manager"
+
+[users."anna.keller"]
+name = "Dr. Anna Keller"
+role = "partner"
+
+[users."alpina.client"]
+name = "Alpina Pumps AG (client)"
+role = "client"
+
+[users."qr.backstage"]
+name = "Quality & Risk (backstage)"
+role = "auditor"
