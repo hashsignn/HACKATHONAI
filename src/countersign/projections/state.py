@@ -11,16 +11,9 @@ from datetime import datetime
 from enum import StrEnum
 
 from ..domain import events as ev
-from ..domain.models import (
-    BlindFinding,
-    Decision,
-    Item,
-    NegotiationAsk,
-    Role,
-    Route,
-)
+from ..domain.catalogue import Catalogue, DepartmentSpec, MilestoneSpec, ServiceSpec
+from ..domain.models import BlindFinding, Conclusion, Decision, Item, Route, Slot
 from ..domain.policy import POLICIES, ReviewPolicy
-from ..domain.workflow import MilestoneSpec, WorkflowSpec, get_workflow
 from ..ledger.store import StoredEvent
 
 
@@ -34,7 +27,9 @@ class MilestoneStatus(StrEnum):
 
 
 class EngagementStatus(StrEnum):
+    AWAITING_PRICING = "awaiting_pricing"
     OPEN = "open"
+    AWAITING_SIGNATURE = "awaiting_signature"  # every milestone signed, deliverable not yet
     RELEASED = "released"
     STOPPED = "stopped"
 
@@ -46,10 +41,9 @@ class ItemState:
     decided_by: str | None = None
     decided_at: str | None = None
     latency_ms: int | None = None
-    history: list[tuple[str, Decision, int | None]] = field(
-        default_factory=list
-    )  # actor, decision, latency
-    control_outcome: str | None = None  # set only after controls are revealed
+    # every decision ever taken on the item: (actor, decision, latency in ms)
+    history: list[tuple[str, Decision, int | None]] = field(default_factory=list)
+    control_outcome: str | None = None  # set only after planted checks are revealed
 
     @property
     def needs_decision(self) -> bool:
@@ -82,8 +76,8 @@ class MilestoneState:
     controls_commitment: str | None = None
     controls: ev.ControlsEvaluated | None = None
     escalation: ev.MilestoneEscalated | None = None
-    priorities: list[NegotiationAsk] | None = None
-    priorities_by: str | None = None
+    conclusions: list[Conclusion] | None = None
+    conclusions_by: str | None = None
     signatures: list[ev.MilestoneSigned] = field(default_factory=list)
     signed_at: str | None = None
     signed_n: int | None = None
@@ -102,25 +96,25 @@ class MilestoneState:
             return False
         if self.pending_items:
             return False
-        return not (self.spec.requires_priorities and not self.priorities)
+        return not (self.spec.requires_priorities and not self.conclusions)
 
-    def required_signer_roles(self, policy: ReviewPolicy) -> list[Role]:
+    def required_signer_slots(self, policy: ReviewPolicy) -> list[Slot]:
         if self.escalation is not None:
-            return [self.escalation.required_role]
-        roles = [self.spec.signer_role]
-        if policy.manager_countersigns_milestones and self.spec.signer_role is Role.JUNIOR:
-            roles.append(Role.MANAGER)
-        return roles
+            return [self.escalation.required_slot]
+        slots = [self.spec.lead]
+        if policy.manager_countersigns_milestones and self.spec.lead is Slot.JUNIOR:
+            slots.append(Slot.MANAGER)
+        return slots
 
-    def signed_roles(self) -> set[Role]:
-        return {s.role for s in self.signatures}
+    def signed_slots(self) -> set[Slot]:
+        return {s.slot for s in self.signatures}
 
-    def is_signed(self, policy: ReviewPolicy) -> bool:
-        return (
-            bool(self.signatures) and set(self.required_signer_roles(policy)) <= self.signed_roles()
-        )
+    def is_signed(self, policy: ReviewPolicy | None) -> bool:
+        if policy is None or not self.signatures:
+            return False
+        return set(self.required_signer_slots(policy)) <= self.signed_slots()
 
-    def status(self, policy: ReviewPolicy) -> MilestoneStatus:
+    def status(self, policy: ReviewPolicy | None) -> MilestoneStatus:
         if self.is_signed(policy):
             return MilestoneStatus.SIGNED
         if not self.started:
@@ -137,12 +131,16 @@ class MilestoneState:
 @dataclass
 class EngagementState:
     opened: ev.EngagementOpened
-    workflow: WorkflowSpec
-    policy: ReviewPolicy
+    service: ServiceSpec
+    department: DepartmentSpec
     milestones: dict[str, MilestoneState]
     events: list[StoredEvent]
-    released: ev.EngagementReleased | None = None
+    pricing: ev.PricingConfirmed | None = None
+    pricing_by: str | None = None
+    deliverable_signatures: list[ev.DeliverableSigned] = field(default_factory=list)
     released_at: str | None = None
+    outcome: ev.OutcomeMeasured | None = None
+    outcome_by: str | None = None
     stopped: ev.EngagementStopped | None = None
     stopped_at: str | None = None
     last_action_at: dict[tuple[str, str], datetime] = field(default_factory=dict)
@@ -160,31 +158,58 @@ class EngagementState:
         return self.events[-1].hash
 
     @property
+    def policy(self) -> ReviewPolicy | None:
+        return POLICIES[self.pricing.review_level] if self.pricing else None
+
+    @property
+    def all_milestones_signed(self) -> bool:
+        return all(
+            m.status(self.policy) is MilestoneStatus.SIGNED for m in self.milestones.values()
+        )
+
+    @property
+    def released(self) -> bool:
+        return self.released_at is not None
+
+    @property
     def status(self) -> EngagementStatus:
         if self.released:
             return EngagementStatus.RELEASED
         if self.stopped:
             return EngagementStatus.STOPPED
+        if self.pricing is None:
+            return EngagementStatus.AWAITING_PRICING
+        if self.all_milestones_signed:
+            return EngagementStatus.AWAITING_SIGNATURE
         return EngagementStatus.OPEN
 
     def milestone(self, key: str) -> MilestoneState:
-        self.workflow.milestone(key)  # raises NotFound for unknown keys
+        self.service.milestone(key)  # raises NotFound for unknown keys
         return self.milestones[key]
 
-    def member(self, role: Role) -> str | None:
-        return self.opened.team.get(role)
+    def member(self, slot: Slot) -> str | None:
+        return self.opened.team.get(slot)
+
+    def slots_of(self, user_id: str) -> list[Slot]:
+        return [s for s, u in self.opened.team.items() if u == user_id]
+
+    def final_signers_outstanding(self) -> list[Slot]:
+        if self.pricing is None:
+            return []
+        done = {s.slot for s in self.deliverable_signatures}
+        return [s for s in self.pricing.final_signers if s not in done]
 
 
-def build_state(events: list[StoredEvent]) -> EngagementState:
+def build_state(events: list[StoredEvent], catalogue: Catalogue) -> EngagementState:
     first = events[0].event
     if not isinstance(first, ev.EngagementOpened):
         raise ValueError("an engagement history must start with engagement_opened")
-    workflow = get_workflow(first.workflow)
+    service = catalogue.service(first.service_id)
     state = EngagementState(
         opened=first,
-        workflow=workflow,
-        policy=POLICIES[first.review_level],
-        milestones={m.key: MilestoneState(spec=m) for m in workflow.milestones},
+        service=service,
+        department=catalogue.department(service.department),
+        milestones={m.key: MilestoneState(spec=m) for m in service.milestones},
         events=list(events),
     )
     for stored in events[1:]:
@@ -200,6 +225,8 @@ def _apply(state: EngagementState, stored: StoredEvent) -> None:
     ms = state.milestones.get(milestone_key) if milestone_key else None
 
     match e:
+        case ev.PricingConfirmed():
+            state.pricing, state.pricing_by = e, stored.actor
         case ev.MilestoneStarted():
             ms.started = True
             ms.provider, ms.provider_version = e.provider, e.provider_version
@@ -224,14 +251,18 @@ def _apply(state: EngagementState, stored: StoredEvent) -> None:
                 ms.items[item_id].control_outcome = outcome
         case ev.MilestoneEscalated():
             ms.escalation = e
-        case ev.PrioritiesSet():
-            ms.priorities, ms.priorities_by = list(e.asks), stored.actor
+        case ev.ConclusionsRecorded():
+            ms.conclusions, ms.conclusions_by = list(e.conclusions), stored.actor
         case ev.MilestoneSigned():
             ms.signatures.append(e)
             if ms.is_signed(state.policy):
                 ms.signed_at, ms.signed_n = stored.occurred_at, stored.n
-        case ev.EngagementReleased():
-            state.released, state.released_at = e, stored.occurred_at
+        case ev.DeliverableSigned():
+            state.deliverable_signatures.append(e)
+        case ev.DeliverableReleased():
+            state.released_at = stored.occurred_at
+        case ev.OutcomeMeasured():
+            state.outcome, state.outcome_by = e, stored.actor
         case ev.EngagementStopped():
             state.stopped, state.stopped_at = e, stored.occurred_at
         case _:

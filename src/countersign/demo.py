@@ -31,27 +31,39 @@ def main(argv: list[str] | None = None) -> int:
     clock = Clock(datetime(2026, 10, 21, 7, 0, tzinfo=UTC))
     c = build_container(Settings(db_path=":memory:", seed=None), clock=clock)
     state = run_alpina(
-        c.service, load_contract(c.settings.fixture_dir), until=args.until, tick=clock.advance
+        c.service, load_contract(c.settings.alpina_dir), until=args.until, tick=clock.advance
     )
 
     print(
         render_markdown(build_trail(state, c.store.verify(ENGAGEMENT_ID), c.directory, c.keyring))
     )
 
-    inv = build_invoice(state, c.rate_card, c.directory)
-    print(f"## Invoice ({inv.status}, {inv.review_level} review x{inv.review_multiplier:g})\n")
-    for line in inv.lines:
+    inv = build_invoice(state, c.directory)
+    cur = inv.currency
+    print(f"## Invoice ({inv.status}): {inv.service}, {inv.option.replace('_', ' ')}\n")
+    print(
+        f"  Judgment line, {inv.complexity.replace('tier', 'Tier ')}: {cur} {inv.judgment_full:,.0f}"
+    )
+    for line in inv.judgment_lines:
         print(
-            f"  {line.milestone} {line.title:<34} {inv.currency} {line.amount:>8,.0f}   signed by {line.signed_by}"
+            f"    {line.milestone} {line.title:<34} {line.weight:>4.0%}  {cur} {line.amount:>8,.0f}"
+            f"   signed by {line.signed_by}"
         )
-    print(f"  {'Total':<37} {inv.currency} {inv.total:>8,.0f}")
-    if inv.not_billed:
-        print(f"  Not billed (unsigned): {', '.join(inv.not_billed)}")
+    if inv.not_yet_earned:
+        print(f"    Not yet earned (unsigned): {', '.join(inv.not_yet_earned)}")
+    print(
+        f"  Signature line, {inv.consequence.replace('_', ' ')}: {cur} {inv.signature:,.0f}"
+        + (
+            f"   signed by {', '.join(inv.signature_by)}"
+            if inv.signature_billed
+            else "   (not yet signed)"
+        )
+    )
+    print(f"  {'Total due':<44} {cur} {inv.total_due:>8,.0f}")
     if inv.saving_vs_hourly is not None:
         print(
-            f"\n  Full review quoted at {inv.currency} {inv.quote_total:,.0f} vs "
-            f"{inv.currency} {inv.quote_hourly_equivalent:,.0f} billed hourly before AI "
-            f"({inv.saving_vs_hourly:.0%} less for the client)."
+            f"\n  Quoted at {cur} {inv.quote_total:,.0f} vs {cur} {inv.historical_fee:,.0f} billed "
+            f"hourly before AI ({inv.saving_vs_hourly:.0%} less for the client)."
         )
 
     q = reviewer_quality(JUNIOR, [state])

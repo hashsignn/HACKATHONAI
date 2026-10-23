@@ -1,65 +1,30 @@
-"""Invoice = signed milestones x published rate card. Nothing unsigned is billable.
+"""The invoice, built from the record: two lines per deliverable.
 
-Every invoice line points at the signature (digest) and ledger position that created
-it, so a client can trace each franc to a named person's signed judgment.
+* **Judgment** accrues milestone by milestone: each signed milestone earns its published
+  weight of the Judgment line. A client who stops after any milestone pays only for the
+  signed share. In outcome-linked engagements the at-risk part is settled once the
+  outcome is measured.
+* **Signature** is billed once, when the deliverable is signed by the person(s) its
+  consequence requires.
+
+Prices come from the quote locked in the ledger when pricing was confirmed, never from
+whatever the price list says today. Every line points at the signature that earned it.
 """
 
 from __future__ import annotations
 
-import tomllib
 from dataclasses import dataclass, field
-from pathlib import Path
 
-from ..domain.models import Tier
+from ..domain.models import CommercialOption
 from ..domain.people import Directory
 from .state import EngagementState, EngagementStatus, MilestoneStatus
 
 
 @dataclass(frozen=True)
-class MilestoneRate:
-    price: float
-    reference_hours: float
-
-
-@dataclass(frozen=True)
-class RateCard:
-    version: str
-    currency: str
-    reference_hourly_rate: float
-    review_multipliers: dict[str, float]
-    workflows: dict[str, dict[str, MilestoneRate]]
-    subscription_annual_fee: float
-    subscription_included_engagements: int
-
-    @classmethod
-    def from_toml(cls, path: Path) -> RateCard:
-        raw = tomllib.loads(Path(path).read_text())
-        return cls(
-            version=raw["version"],
-            currency=raw["currency"],
-            reference_hourly_rate=float(raw["reference_hourly_rate"]),
-            review_multipliers={k: float(v) for k, v in raw["review_multipliers"].items()},
-            workflows={
-                wf: {
-                    k: MilestoneRate(float(m["price"]), float(m["reference_hours"]))
-                    for k, m in spec["milestones"].items()
-                }
-                for wf, spec in raw["workflows"].items()
-            },
-            subscription_annual_fee=float(raw["subscription"]["annual_fee"]),
-            subscription_included_engagements=int(raw["subscription"]["included_engagements"]),
-        )
-
-    def rate(self, workflow: str, milestone: str) -> MilestoneRate:
-        return self.workflows[workflow][milestone]
-
-
-@dataclass(frozen=True)
-class InvoiceLine:
+class JudgmentLine:
     milestone: str
     title: str
-    base_price: float
-    multiplier: float
+    weight: float
     amount: float
     signed_by: str
     signed_at: str
@@ -71,97 +36,118 @@ class InvoiceLine:
 class Invoice:
     engagement_id: str
     client: str
-    tier: str
-    review_level: str
-    review_multiplier: float
+    service: str
+    option: str
+    complexity: str
+    consequence: str
     currency: str
-    rate_card_version: str
-    status: str  # interim | final | stopped
-    lines: list[InvoiceLine]
-    not_billed: list[str] = field(default_factory=list)  # unsigned milestones
-    total: float = 0.0
-    hourly_equivalent: float = 0.0  # what the signed scope cost under historical hourly billing
-    quote_total: float = 0.0  # price of the full engagement if every milestone is signed
-    quote_hourly_equivalent: float = 0.0  # the full engagement under historical hourly billing
-    note: str | None = None
+    price_list_version: str
+    status: str  # awaiting_pricing | interim | final | stopped
+    external_billing: str  # two_lines | engagement_fee | retainer
+    judgment_lines: list[JudgmentLine] = field(default_factory=list)
+    judgment_accrued: float = 0.0
+    judgment_full: float = 0.0
+    at_risk: float = 0.0  # the at-risk part of the Judgment line
+    at_risk_paid: float | None = None  # settled amount once the outcome is measured
+    signature: float = 0.0  # list price of the Signature line
+    signature_billed: bool = False
+    signature_by: list[str] = field(default_factory=list)
+    not_yet_earned: list[str] = field(default_factory=list)  # unsigned milestones
+    total_due: float = 0.0  # what the client owes on this deliverable so far
+    quote_total: float = 0.0  # full price at confirmation, excluding at-risk upside
+    historical_fee: float = 0.0
+    saving_vs_hourly: float | None = None
+    notes: list[str] = field(default_factory=list)
 
-    @property
-    def saving_vs_hourly(self) -> float | None:
-        """Client saving on the full engagement versus pre-AI hourly billing (assisted tier)."""
-        if self.quote_hourly_equivalent <= 0 or self.tier != Tier.ASSISTED.value:
-            return None
-        return 1 - self.quote_total / self.quote_hourly_equivalent
 
-
-def build_invoice(state: EngagementState, card: RateCard, directory: Directory) -> Invoice:
-    if card.version != state.opened.rate_card_version:
-        raise ValueError(
-            f"engagement was priced on rate card {state.opened.rate_card_version}, "
-            f"not {card.version}; load the locked version"
+def build_invoice(state: EngagementState, directory: Directory) -> Invoice:
+    o = state.opened
+    if state.pricing is None:
+        return Invoice(
+            engagement_id=state.id,
+            client=o.client,
+            service=state.service.name,
+            option=o.requested_option.value,
+            complexity=o.recommended_complexity.value,
+            consequence=o.recommended_consequence.value,
+            currency="CHF",
+            price_list_version="",
+            status="awaiting_pricing",
+            external_billing="",
+            notes=["Nothing is priced until the manager confirms the tiers."],
         )
-    multiplier = card.review_multipliers[state.opened.review_level.value]
-    tier = state.opened.tier
-    lines: list[InvoiceLine] = []
-    not_billed: list[str] = []
-    hourly_equivalent = 0.0
-    quote_total = 0.0
-    quote_hourly = 0.0
 
+    p = state.pricing
+    q = p.quote
+    option = p.option
+    priced = option not in (CommercialOption.RETAINER, CommercialOption.ENGAGEMENT_FEE)
+    j_fixed = q["judgment_fixed"]
+
+    lines: list[JudgmentLine] = []
+    not_earned: list[str] = []
     for key, ms in state.milestones.items():
-        if not ms.spec.billable:
-            continue
-        rate = card.rate(state.workflow.key, key)
-        quote_total += rate.price * multiplier
-        quote_hourly += rate.reference_hours * card.reference_hourly_rate
         if ms.status(state.policy) is not MilestoneStatus.SIGNED:
-            not_billed.append(key)
+            not_earned.append(key)
             continue
-        hourly_equivalent += rate.reference_hours * card.reference_hourly_rate
-        final_sig = ms.signatures[-1]
-        amount = round(rate.price * multiplier, 2) if tier is Tier.ASSISTED else 0.0
+        last = ms.signatures[-1]
         lines.append(
-            InvoiceLine(
+            JudgmentLine(
                 milestone=key,
                 title=ms.spec.title,
-                base_price=rate.price,
-                multiplier=multiplier,
-                amount=amount,
+                weight=ms.spec.weight,
+                amount=round(j_fixed * ms.spec.weight, 2) if priced else 0.0,
                 signed_by=", ".join(directory.get(s.signer).name for s in ms.signatures),
                 signed_at=ms.signed_at or "",
-                signature_ref=final_sig.digest[:16],
+                signature_ref=last.digest[:16],
                 ledger_n=ms.signed_n or 0,
             )
         )
+    judgment_accrued = round(sum(line.amount for line in lines), 2)
+    signature_billed = state.released and priced
+    signature_amount = q["signature"]
+    at_risk_paid = None
+    if state.outcome is not None and priced:
+        at_risk_paid = round(q["judgment_at_risk"] * state.outcome.payout_ratio, 2)
 
+    total = (
+        judgment_accrued + (signature_amount if signature_billed else 0.0) + (at_risk_paid or 0.0)
+    )
     status = {
         EngagementStatus.RELEASED: "final",
         EngagementStatus.STOPPED: "stopped",
-        EngagementStatus.OPEN: "interim",
-    }[state.status]
-    note = None
-    if tier is Tier.AGENT_LED:
-        per_engagement = card.subscription_annual_fee / card.subscription_included_engagements
-        note = (
-            f"Covered by the agent-led subscription: draws 1 of {card.subscription_included_engagements} "
-            f"included engagements (about {card.currency} {per_engagement:,.0f} each)."
+    }.get(state.status, "interim")
+
+    notes = list(q.get("notes", []))
+    if state.status is EngagementStatus.STOPPED:
+        notes.append(
+            "The client stopped the engagement: only signed milestones are billed, and no Signature line."
         )
-    elif state.status is EngagementStatus.STOPPED:
-        note = "Client stopped the engagement; only signed milestones are billed."
+    if option is CommercialOption.OUTCOME_LINKED and state.released and state.outcome is None:
+        notes.append("The at-risk part is settled when the outcome is measured.")
 
     return Invoice(
         engagement_id=state.id,
-        client=state.opened.client,
-        tier=tier.value,
-        review_level=state.opened.review_level.value,
-        review_multiplier=multiplier,
-        currency=card.currency,
-        rate_card_version=state.opened.rate_card_version,
+        client=o.client,
+        service=state.service.name,
+        option=option.value,
+        complexity=p.complexity.value,
+        consequence=p.consequence.value,
+        currency=q["currency"],
+        price_list_version=q["price_list_version"],
         status=status,
-        lines=lines,
-        not_billed=not_billed,
-        total=round(sum(line.amount for line in lines), 2),
-        hourly_equivalent=hourly_equivalent,
-        quote_total=round(quote_total, 2),
-        quote_hourly_equivalent=quote_hourly,
-        note=note,
+        external_billing=q["external_billing"],
+        judgment_lines=lines,
+        judgment_accrued=judgment_accrued,
+        judgment_full=q["judgment_full"],
+        at_risk=q["judgment_at_risk"],
+        at_risk_paid=at_risk_paid,
+        signature=signature_amount,
+        signature_billed=signature_billed,
+        signature_by=[directory.get(s.signer).name for s in state.deliverable_signatures],
+        not_yet_earned=not_earned,
+        total_due=round(total, 2) if priced else 0.0,
+        quote_total=q["total_fixed"],
+        historical_fee=q["historical_fee"],
+        saving_vs_hourly=q["saving_vs_hourly"],
+        notes=notes,
     )

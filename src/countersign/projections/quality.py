@@ -33,6 +33,9 @@ class ReviewerQuality:
     blind_ai_only: int = 0
     blind_human_only: int = 0
     milestones_signed: int = 0
+    deliverables_signed: int = 0
+    pricing_confirmations: int = 0
+    pricing_overrides: int = 0  # departures from the recommended tiers, each with a reason
 
     @property
     def reason_coverage(self) -> float | None:
@@ -59,12 +62,19 @@ class ReviewerQuality:
             "blind_recall": self.blind_recall,
             "own_insights_ai_missed": self.blind_human_only,
             "milestones_signed": self.milestones_signed,
+            "deliverables_signed": self.deliverables_signed,
+            "pricing_confirmations": self.pricing_confirmations,
+            "pricing_overrides": self.pricing_overrides,
         }
 
 
 def reviewer_quality(user_id: str, states: list[EngagementState]) -> ReviewerQuality:
     q = ReviewerQuality(user_id=user_id)
     for state in states:
+        if state.pricing_by == user_id:
+            q.pricing_confirmations += 1
+            q.pricing_overrides += 1 if state.pricing.overrides else 0
+        q.deliverables_signed += sum(1 for s in state.deliverable_signatures if s.signer == user_id)
         for ms in state.milestones.values():
             for s in ms.items.values():
                 if s.item.route is Route.INFORMATIONAL:

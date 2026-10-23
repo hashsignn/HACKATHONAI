@@ -34,8 +34,14 @@ class TrailSummary:
     client: str
     counterparty: str
     matter: str
+    service: str
+    department: str
     review_level: str
     review_rationale: list[str]
+    complexity: str
+    consequence: str
+    pricing_confirmed_by: str | None
+    pricing_overrides: list[str]
     status: str
     ai_items: int = 0
     auto_accepted: int = 0
@@ -50,7 +56,7 @@ class TrailSummary:
     blind_findings: int = 0
     learning_points: list[str] = field(default_factory=list)
     signatures: list[SignatureEntry] = field(default_factory=list)
-    released_by: str | None = None
+    deliverable_signed_by: list[str] = field(default_factory=list)
     chain_ok: bool = False
     chain_length: int = 0
     chain_head: str = ""
@@ -141,7 +147,7 @@ def build_trail(
                     milestone=key,
                     title=ms.spec.title,
                     signer=directory.get(sig.signer).name,
-                    role=sig.role.value,
+                    role=sig.slot.value.replace("_", " "),
                     signed_at=_signed_at(state, key, sig.digest),
                     digest=sig.digest,
                     escalated=sig.escalated,
@@ -149,25 +155,32 @@ def build_trail(
                 )
             )
 
-    released_by = None
-    if state.released:
-        ok = keyring.verify(state.released.signer, state.released.digest, state.released.signature)
-        released_by = (
-            f"{directory.get(state.released.signer).name} ({state.released.role.value})"
-            + ("" if ok else " [SIGNATURE INVALID]")
+    deliverable_signed_by = []
+    for sig in state.deliverable_signatures:
+        ok = keyring.verify(sig.signer, sig.digest, sig.signature)
+        label = sig.slot.value.replace("_", " ")
+        deliverable_signed_by.append(
+            f"{directory.get(sig.signer).name} ({label})" + ("" if ok else " [SIGNATURE INVALID]")
         )
+    p = state.pricing
 
     return TrailSummary(
         engagement_id=state.id,
         client=state.opened.client,
         counterparty=state.opened.counterparty,
         matter=state.opened.matter,
-        review_level=state.opened.review_level.value,
-        review_rationale=list(state.opened.policy_rationale),
+        service=state.service.name,
+        department=state.department.name,
+        review_level=p.review_level.value if p else "not set",
+        review_rationale=list(p.review_rationale) if p else [],
+        complexity=(p.complexity if p else state.opened.recommended_complexity).value,
+        consequence=(p.consequence if p else state.opened.recommended_consequence).value,
+        pricing_confirmed_by=directory.get(state.pricing_by).name if state.pricing_by else None,
+        pricing_overrides=list(p.overrides) if p else [],
         status=state.status.value,
         learning_points=learning,
         signatures=signatures,
-        released_by=released_by,
+        deliverable_signed_by=deliverable_signed_by,
         chain_ok=chain.ok,
         chain_length=chain.length,
         chain_head=chain.head_hash,
@@ -193,6 +206,11 @@ def render_markdown(t: TrailSummary) -> str:
         f"**Client:** {t.client}  ",
         f"**Counterparty:** {t.counterparty}  ",
         f"**Engagement:** {t.engagement_id} ({t.status})  ",
+        f"**Service:** {t.department}, {t.service}  ",
+        f"**Priced as:** Judgment {t.complexity.replace('tier', 'Tier ')}, Signature "
+        f"{t.consequence.replace('_', ' ')}; confirmed by {t.pricing_confirmed_by or 'nobody yet'}"
+        + (f" (overrides: {'; '.join(t.pricing_overrides)})" if t.pricing_overrides else "")
+        + "  ",
         f"**Review level:** {t.review_level} ({'; '.join(t.review_rationale)})",
         "",
         "## What people did with the AI's work",
@@ -201,7 +219,7 @@ def render_markdown(t: TrailSummary) -> str:
         "",
         "## Signatures",
         "",
-        "| Milestone | Signed by | Role | Digest | Verified |",
+        "| Milestone | Signed by | As | Digest | Verified |",
         "|---|---|---|---|---|",
         *[
             f"| {s.milestone} {s.title}{' (escalated)' if s.escalated else ''} | {s.signer} | {s.role} | "
@@ -210,8 +228,8 @@ def render_markdown(t: TrailSummary) -> str:
         ],
         "",
     ]
-    if t.released_by:
-        out += [f"**Final report signed by:** {t.released_by}", ""]
+    if t.deliverable_signed_by:
+        out += [f"**Deliverable signed by:** {', '.join(t.deliverable_signed_by)}", ""]
     if t.learning_points:
         out += ["## Learning points", "", *[f"- {p}" for p in t.learning_points], ""]
     out += [
