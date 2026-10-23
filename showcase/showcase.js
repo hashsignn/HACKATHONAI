@@ -1,4 +1,4 @@
-/* Countersign showcase: a scripted, presenter-driven product story.
+/* Trust+ showcase: a scripted, presenter-driven product story.
    Live mode: the presenter clicks (or presses →) for every human action.
    Auto mode: a cursor performs the actions and scenes advance on their own.
    No backend and no network: everything here is the Alpina / SinoGear fixture. */
@@ -270,7 +270,7 @@
     let parts = [];
     let running = false;
     let last = 0;
-    const colors = ['#a78bfa', '#c4b5fd', '#5b9dff', '#93c5fd', '#f6c96b', '#34d399', '#ffffff', '#f472b6'];
+    const colors = ['#00338d', '#005eb8', '#0091da', '#00b8f5', '#7213ea', '#00a3a1', '#fd349c', '#f6c96b'];
     function burst(x, y, n, angle, spread, power) {
       for (let i = 0; i < n; i++) {
         const a = angle + (Math.random() - 0.5) * spread;
@@ -512,10 +512,10 @@
                 <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -11"/>
               </filter>
               <radialGradient id="inkGrad" gradientUnits="userSpaceOnUse" cx="700" cy="450" r="1100">
-                <stop offset="0" stop-color="#ede9fe"/>
-                <stop offset=".25" stop-color="#a78bfa"/>
-                <stop offset=".6" stop-color="#6d28d9"/>
-                <stop offset="1" stop-color="#2f6bff"/>
+                <stop offset="0" stop-color="#e6f6ff"/>
+                <stop offset=".25" stop-color="#00b8f5"/>
+                <stop offset=".6" stop-color="#005eb8"/>
+                <stop offset="1" stop-color="#00338d"/>
               </radialGradient>
               <mask id="holeMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1600" height="900">
                 <rect width="1600" height="900" fill="#fff"/>
@@ -762,10 +762,10 @@
       corePulse *= 0.94;
       const coreR = 30 + Math.sin(time * 2.2) * 3 + corePulse * 14 + converge * 60;
       const g = c.createRadialGradient(cx, cy, 0, cx, cy, coreR * 3.2);
-      g.addColorStop(0, 'rgba(245,243,255,1)');
-      g.addColorStop(0.16, 'rgba(196,181,253,.9)');
-      g.addColorStop(0.45, 'rgba(109,40,217,.28)');
-      g.addColorStop(1, 'rgba(109,40,217,0)');
+      g.addColorStop(0, 'rgba(0,51,141,1)');
+      g.addColorStop(0.2, 'rgba(0,94,184,.85)');
+      g.addColorStop(0.5, 'rgba(0,145,218,.22)');
+      g.addColorStop(1, 'rgba(0,145,218,0)');
       c.fillStyle = g;
       c.beginPath();
       c.arc(cx, cy, coreR * 3.2, 0, 6.29);
@@ -773,8 +773,8 @@
       c.lineWidth = 1;
       for (const ag of agents) {
         const lg = c.createLinearGradient(ag.x, ag.y, cx, cy);
-        lg.addColorStop(0, 'rgba(167,139,250,.4)');
-        lg.addColorStop(1, 'rgba(91,157,255,.05)');
+        lg.addColorStop(0, 'rgba(114,19,234,.35)');
+        lg.addColorStop(1, 'rgba(0,94,184,.1)');
         c.strokeStyle = lg;
         c.beginPath();
         c.moveTo(ag.x, ag.y);
@@ -787,7 +787,7 @@
         f.t += dt * 0.9;
         if (f.t >= 1) { flows.splice(i, 1); corePulse = Math.min(1, corePulse + 0.04); continue; }
         const ag = agents[f.ag];
-        c.fillStyle = `rgba(221,214,254,${0.9 * (1 - f.t)})`;
+        c.fillStyle = `rgba(114,19,234,${0.8 * (1 - f.t)})`;
         c.beginPath();
         c.arc(ag.x + (cx - ag.x) * f.t, ag.y + (cy - ag.y) * f.t, 1.8, 0, 6.29);
         c.fill();
@@ -800,7 +800,7 @@
         const ty = ag.y + Math.sin(p.a) * p.r * 0.8 * (1 - converge);
         p.x += (tx - p.x) * k;
         p.y += (ty - p.y) * k;
-        c.fillStyle = p.blue ? 'rgba(147,197,253,.85)' : 'rgba(196,181,253,.85)';
+        c.fillStyle = p.blue ? 'rgba(0,145,218,.8)' : 'rgba(114,19,234,.7)';
         c.beginPath();
         c.arc(p.x, p.y, p.s, 0, 6.29);
         c.fill();
@@ -810,25 +810,25 @@
         ag.pulse *= 0.93;
         const r = 18 + ag.pulse * 9;
         const gg = c.createRadialGradient(ag.x, ag.y, 0, ag.x, ag.y, r * 2.6);
-        gg.addColorStop(0, `rgba(167,139,250,${0.5 + ag.pulse * 0.4})`);
-        gg.addColorStop(1, 'rgba(167,139,250,0)');
+        gg.addColorStop(0, `rgba(114,19,234,${0.18 + ag.pulse * 0.35})`);
+        gg.addColorStop(1, 'rgba(114,19,234,0)');
         c.fillStyle = gg;
         c.beginPath();
         c.arc(ag.x, ag.y, r * 2.6, 0, 6.29);
         c.fill();
-        c.fillStyle = '#140d2e';
-        c.strokeStyle = 'rgba(221,214,254,.95)';
+        c.fillStyle = '#ffffff';
+        c.strokeStyle = '#7213ea';
         c.lineWidth = 1.6;
         c.beginPath();
         c.arc(ag.x, ag.y, r, 0, 6.29);
         c.fill();
         c.stroke();
-        c.fillStyle = '#c4b5fd';
+        c.fillStyle = '#5b0fc4';
         c.font = '700 11px ui-monospace, Menlo, monospace';
         c.fillText('AI', ag.x, ag.y + 4);
         if (converge < 0.6) {
           c.globalAlpha = 1 - converge / 0.6;
-          c.fillStyle = '#ede9fe';
+          c.fillStyle = '#0b1f44';
           c.font = '600 12.5px Inter, system-ui, sans-serif';
           c.fillText(ag.n, ag.x, ag.y + r + 20);
           c.globalAlpha = 1;
@@ -845,15 +845,15 @@
         const my = (pk.fy + ag.y) / 2 - 50;
         const x = (1 - t) * (1 - t) * 0 + 2 * (1 - t) * t * mx + t * t * ag.x;
         const y = (1 - t) * (1 - t) * pk.fy + 2 * (1 - t) * t * my + t * t * ag.y;
-        c.shadowColor = '#93c5fd';
-        c.shadowBlur = 14;
-        c.fillStyle = 'rgba(255,255,255,.95)';
+        c.shadowColor = '#00b8f5';
+        c.shadowBlur = 10;
+        c.fillStyle = '#0091da';
         c.beginPath();
         c.arc(x, y, 2.7, 0, 6.29);
         c.fill();
         c.shadowBlur = 0;
       }
-      c.fillStyle = '#2e1065';
+      c.fillStyle = '#ffffff';
       c.font = '800 10.5px Inter, system-ui, sans-serif';
       c.fillText('SYNTHESIS', cx, cy + 4);
     }
@@ -1226,7 +1226,7 @@
         <div class="caught">
           <svg class="tgt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${P.target}</svg>
           <div class="ttl grad">PLANTED CHECK CAUGHT</div>
-          <div class="txt">Quality &amp; Risk planted this false finding to test the review.<br>Approving it would have <b style="color:#fff">blocked the signature</b> and escalated to Marco.</div>
+          <div class="txt">Quality &amp; Risk planted this false finding to test the review.<br>Approving it would have <b>blocked the signature</b> and escalated to Marco.</div>
           <div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><span class="tag ink">Logged to Lea's record</span><span class="tag ok">Signature unblocked</span></div>
         </div>`));
       Sound.dingding(0.05);
@@ -1309,7 +1309,7 @@
     id: 'signs', title: 'Milestones signed', side: 'frontend', hold: 5000,
     rail: { pct: 80, act: 'All milestones ready · waiting for signatures', items: { M1: ['ready', 'Ready to sign'], M2: ['ready', 'Ready to sign'], M3: ['ready', 'Ready to sign'], M4: ['ready', 'Ready to sign'], M5: ['ready', 'Ready to sign'] } },
     async run(el) {
-      const shades = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#7c6cf0', '#6d7cf6'];
+      const shades = ['#00b8f5', '#0091da', '#005eb8', '#1e49e2', '#00338d'];
       el.innerHTML = `
         <div class="signs">
           <div><div class="eyebrow">Sign-off</div><h2 class="h2" style="margin-top:6px">Each milestone is signed by the person who led it, and earns its price</h2></div>
@@ -1410,7 +1410,7 @@
         <div class="win">
           <div class="win-glow"></div>
           <div style="position:relative">
-            <svg class="win-check" viewBox="0 0 170 170"><defs><linearGradient id="winGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#5b9dff"/></linearGradient></defs><circle cx="85" cy="85" r="78"/><path d="M50 88l24 24 48-52"/></svg>
+            <svg class="win-check" viewBox="0 0 170 170"><defs><linearGradient id="winGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0091da"/><stop offset="1" stop-color="#00338d"/></linearGradient></defs><circle cx="85" cy="85" r="78"/><path d="M50 88l24 24 48-52"/></svg>
             <h1>Deliverable signed.</h1>
             <div class="wsub">Lea did the judgment. Marco signed. KPMG stands behind it.</div>
             <div class="win-stats">
@@ -1440,7 +1440,7 @@
           <div class="lanes">
             <div class="lane" id="lb"><div class="lbl"><b>Hourly, before AI</b><span>40 h × CHF 250</span></div><div class="track"></div><div class="val muted">—</div></div>
             <div class="lane" id="lc"><div class="lbl"><b>Hourly, with AI</b><span>Same model, fewer hours</span></div><div class="track"></div><div class="val" style="color:var(--bad)">—</div></div>
-            <div class="lane" id="la"><div class="lbl"><b class="grad">Countersign</b><span>Judgment + Signature</span></div><div class="track"></div><div class="val" style="position:relative">—</div></div>
+            <div class="lane" id="la"><div class="lbl"><b class="grad">Trust+</b><span>Judgment + Signature</span></div><div class="track"></div><div class="val" style="position:relative">—</div></div>
           </div>
           <div class="bottom">
             <div class="card claim invisible"><div class="eyebrow">Why it wins</div><div class="big" style="margin-top:10px">Clients pay for judgment and liability. <span class="grad">AI efficiency becomes margin</span>, not lost revenue.</div></div>
@@ -1467,7 +1467,7 @@
       Sound.alert();
       $('#lc .val', el).textContent = '↓ falling';
       await wait(1500);
-      // Countersign, milestone by milestone
+      // Trust+, milestone by milestone
       const la = $('#la .track', el);
       let left = 0;
       for (const m of MS) {
@@ -1574,8 +1574,8 @@
       stage.appendChild(h(`
         <div class="finale">
           <div>
-            <svg class="logo" viewBox="0 0 32 32"><rect x="1.5" y="1.5" width="29" height="29" rx="9" fill="none" stroke="url(#markGrad)" stroke-width="2.4"/><path d="M9 17.5l4.2 4.2L23.5 11" fill="none" stroke="url(#markGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <h1>Countersign</h1>
+            <svg class="logo" viewBox="0 0 32 32"><defs><linearGradient id="finGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0091da"/><stop offset="1" stop-color="#00338d"/></linearGradient></defs><rect x="1.5" y="1.5" width="29" height="29" rx="9" fill="none" stroke="url(#finGrad)" stroke-width="2.4"/><path d="M9 17.5l4.2 4.2L23.5 11" fill="none" stroke="url(#finGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <h1>Trust<span style="color:#0091da">+</span></h1>
             <p>The billable unit when AI does the work: a signed professional judgment.</p>
             <div class="tl"><span class="tag ai" style="height:40px;padding:0 18px;font-size:15px">AI does the work</span><span class="tag ink" style="height:40px;padding:0 18px;font-size:15px">People decide and sign</span><span class="tag gold" style="height:40px;padding:0 18px;font-size:15px">Clients pay for judgment</span></div>
           </div>
@@ -1711,5 +1711,5 @@
   if (params.has('autostart')) start();
 
   // Exposed for rehearsal and automated checks.
-  window.countersign = { go, next, prev, start, setMode, state: S, scenes: SCENES.map((s) => s.id) };
+  window.trustplus = { go, next, prev, start, setMode, state: S, scenes: SCENES.map((s) => s.id) };
 })();

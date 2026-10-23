@@ -1,4 +1,4 @@
-# Countersign pitch showcase
+# Trust+ pitch showcase
 
 A presenter-driven, animated walk through the Alpina / SinoGear contract review. It runs from the files alone, with no backend and no network, so a hackathon venue's wifi cannot break it.
 
@@ -6,7 +6,7 @@ A presenter-driven, animated walk through the Alpina / SinoGear contract review.
 open showcase/index.html     # or: make showcase, then http://localhost:8080
 ```
 
-Violet is what the AI said. Ink blue is what a person decided.
+Purple is what the AI said. KPMG blue is what a person decided.
 
 ## Modes
 
