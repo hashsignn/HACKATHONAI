@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "countersign"
+version = "0.1.0"
+description = "The human-judgment layer for AI-assisted advisory work: every AI step is decided, reasoned and signed by a named person, and the signed milestone is the billable unit."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "UZH.ai Hackathon 2026 team, KPMG Challenge 3" }]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "pydantic>=2.6",
+  "cryptography>=42",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.5"]
+
+[project.scripts]
+countersign-demo = "countersign.demo:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+countersign = ["config/*.toml", "web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Upstream notice from Starlette's test client; unrelated to this code base.
+filterwarnings = ["ignore:Using .httpx. with .starlette.testclient. is deprecated"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+# E501: line length is enforced by `ruff format`; it leaves long string literals alone.
+ignore = ["RUF012", "E501"]
