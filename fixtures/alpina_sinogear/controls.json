@@ -1,5 +1,6 @@
 {
-  "_comment": "Planted control items: plausible but FALSE AI findings. The correct handling is to reject them after checking the source. Maintained by the quality team; rotated in production.",
+  "service": "legal.contract_review",
+  "_comment": "Planted control items: plausible but FALSE AI findings. The correct handling is to reject them after checking the source. Maintained by Quality & Risk; rotated in production.",
   "controls": [
     {
       "milestone": "risk_screening",

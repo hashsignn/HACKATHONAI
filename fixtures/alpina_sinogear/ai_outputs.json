@@ -1,4 +1,5 @@
 {
+  "service": "legal.contract_review",
   "version": "alpina-sinogear-fixture-1",
   "milestones": {
     "extraction": [

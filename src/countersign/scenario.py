@@ -4,7 +4,7 @@ Used three ways: the CLI demo replays it end to end, the server can seed it up t
 stage so a live demo starts at the interesting moment, and the end-to-end test checks
 that the record it produces says exactly what the pitch claims.
 
-Items are located by title, never by id: ids depend on where planted controls land.
+Items are located by title, never by id: ids depend on where planted checks land.
 """
 
 from __future__ import annotations
@@ -14,15 +14,16 @@ from pathlib import Path
 
 from .domain.models import (
     BlindFinding,
+    CommercialOption,
+    Conclusion,
+    Consequence,
     Decision,
     DecisionAction,
     Intake,
-    NegotiationAsk,
     Priority,
     ReasonCode,
-    Role,
     Route,
-    Tier,
+    Slot,
 )
 from .projections.state import EngagementState
 from .services.engagements import EngagementService
@@ -30,7 +31,7 @@ from .services.engagements import EngagementService
 ENGAGEMENT_ID = "ENG-ALPINA-SG-001"
 JUNIOR, MANAGER, PARTNER, CLIENT = "lea.brunner", "marco.rossi", "anna.keller", "alpina.client"
 
-STAGES = ("opened", "M1", "M2", "M3-sealed", "M3", "M4", "M5", "released")
+STAGES = ("opened", "priced", "M1", "M2", "M3-sealed", "M3", "M4", "M5", "released")
 
 Tick = Callable[[float], None]
 
@@ -71,25 +72,35 @@ def run_alpina(
         client="Alpina Pumps AG",
         counterparty="SinoGear Ltd",
         matter="3-year supply agreement for MH-200 motor housings (supplier draft v1)",
-        workflow="spa_contract_review",
-        tier=Tier.ASSISTED,
+        service_id="legal.contract_review",
+        requested_option=CommercialOption.PER_DELIVERABLE,
         intake=Intake(
-            client_role="buyer",
+            client_position="buyer",
             priorities=["security of supply", "quality", "stable prices"],
             client_importance="key",
-            term_years=3,
-            annual_value_chf=4_200_000,
+            is_audit_client=False,
+            reliance=Consequence.INTERNAL_USE,
+            value_at_stake_chf=12_600_000,
+            duration_years=3,
+            cross_border=True,
+            bespoke=True,
             notes="Alpina redesigns its pumps around the housings; SinoGear builds dedicated tooling.",
         ),
         team={
-            Role.JUNIOR: JUNIOR,
-            Role.MANAGER: MANAGER,
-            Role.PARTNER: PARTNER,
-            Role.CLIENT: CLIENT,
+            Slot.JUNIOR: JUNIOR,
+            Slot.MANAGER: MANAGER,
+            Slot.PARTNER: PARTNER,
+            Slot.CLIENT: CLIENT,
         },
-        contract_text=contract_text,
+        document_text=contract_text,
     )
     if stop_at == STAGES.index("opened"):
+        return svc.load(ENGAGEMENT_ID)
+
+    # Step 0b: the manager confirms the recommended tiers (Tier 2, internal use)
+    tick(300)
+    svc.confirm_pricing(MANAGER, ENGAGEMENT_ID)
+    if stop_at == STAGES.index("priced"):
         return svc.load(ENGAGEMENT_ID)
 
     # Step 1: extraction (AI-led, people check low-confidence and sampled items)
@@ -254,28 +265,28 @@ def run_alpina(
     supply = _item_id(state, "M4", "Minimum supply commitment and tooling ownership")
     delay = _item_id(state, "M4", "Higher delay damages and shortfall discount")
     tick(900)
-    svc.set_priorities(
+    svc.record_conclusions(
         MANAGER,
         ENGAGEMENT_ID,
         "M5",
         [
-            NegotiationAsk(
+            Conclusion(
                 label="Index-linked price escalator (LME aluminium)",
                 priority=Priority.MUST_HAVE,
                 ref_item_id=escalator,
             ),
-            NegotiationAsk(
+            Conclusion(
                 label="Tooling ownership passes to Alpina on exit",
                 priority=Priority.MUST_HAVE,
                 ref_item_id=supply,
             ),
-            NegotiationAsk(
+            Conclusion(
                 label="Minimum supply commitment",
                 priority=Priority.TRADE_OFF,
                 ref_item_id=supply,
                 note="Offer a longer term (5 years) in exchange for the supply commitment.",
             ),
-            NegotiationAsk(
+            Conclusion(
                 label="Higher delay damages", priority=Priority.NICE_TO_HAVE, ref_item_id=delay
             ),
         ],
@@ -285,9 +296,9 @@ def run_alpina(
     if stop_at == STAGES.index("M5"):
         return svc.load(ENGAGEMENT_ID)
 
-    # Step 6: final sign-off
+    # Step 6: the Signature line. Internal use, so the engagement manager signs.
     tick(300)
-    return svc.release(MANAGER, ENGAGEMENT_ID)
+    return svc.sign_deliverable(MANAGER, ENGAGEMENT_ID)
 
 
 def load_contract(fixture_dir: Path) -> str:

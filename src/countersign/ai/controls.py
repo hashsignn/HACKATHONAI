@@ -1,12 +1,12 @@
-"""Planted control items: the platform's answer to rubber-stamping.
+"""Planted checks: the platform's answer to rubber-stamping.
 
-A control is a plausible but *false* AI proposal (it cites a clause that does not say
-what the proposal claims). It is mixed into the AI's output at a random position and
-looks exactly like any other item. The correct handling is to reject it; a reviewer who
-approves it has not checked the source, and the milestone is escalated.
+A planted check is a plausible but *false* AI proposal (it cites a clause or record that
+does not say what the proposal claims). It is mixed into the AI's output at a random
+position and looks exactly like any other item. The correct handling is to reject it; a
+reviewer who approves it has not checked the source, and the milestone is escalated.
 
-Controls come from a curated library per workflow. In production the library is
-maintained by the quality team and items are rotated so reviewers cannot learn them.
+Checks come from a curated library per service. In production the library is
+maintained by Quality & Risk and rotated so reviewers cannot learn it.
 """
 
 from __future__ import annotations
@@ -16,15 +16,16 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..domain.catalogue import ServiceSpec
 from ..domain.models import Lane, ProposalDraft
-from ..domain.workflow import WorkflowSpec
 
-# Where controls go first: the lanes where judgment matters most.
+# Where checks go first: the lanes where judgment matters most.
 PLACEMENT_ORDER = (Lane.HUMAN_LED_BLIND, Lane.AI_DRAFTS_HUMAN_CONFIRMS, Lane.AI_DRAFTS_HUMAN_EDITS)
 
 
 @dataclass(frozen=True)
 class ControlTemplate:
+    service_id: str
     milestone_slug: str
     draft: ProposalDraft
 
@@ -34,32 +35,35 @@ class ControlLibrary:
         self._templates = templates
 
     @classmethod
-    def from_fixture(cls, fixture_dir: Path) -> ControlLibrary:
-        path = Path(fixture_dir) / "controls.json"
-        if not path.exists():
-            return cls([])
-        raw = json.loads(path.read_text())
-        return cls(
-            [
-                ControlTemplate(c["milestone"], ProposalDraft.model_validate(c["draft"]))
+    def from_fixtures(cls, fixtures_root: Path) -> ControlLibrary:
+        templates = []
+        for f in sorted(Path(fixtures_root).glob("*/controls.json")):
+            raw = json.loads(f.read_text())
+            templates += [
+                ControlTemplate(
+                    raw["service"], c["milestone"], ProposalDraft.model_validate(c["draft"])
+                )
                 for c in raw["controls"]
             ]
-        )
+        return cls(templates)
 
-    def plan(self, workflow: WorkflowSpec, count: int) -> dict[str, list[ProposalDraft]]:
-        """Decide which milestones receive controls. Deterministic for a given library."""
+    def plan(self, service: ServiceSpec, count: int) -> dict[str, list[ProposalDraft]]:
+        """Decide which milestones receive checks. Deterministic for a given library."""
         plan: dict[str, list[ProposalDraft]] = {}
         if count <= 0:
             return plan
-        eligible = [m for lane in PLACEMENT_ORDER for m in workflow.milestones if m.lane is lane]
+        eligible = [m for lane in PLACEMENT_ORDER for m in service.milestones if m.lane is lane]
         remaining = count
         for m in eligible:
-            available = [t.draft for t in self._templates if t.milestone_slug == m.slug]
+            available = [
+                t.draft
+                for t in self._templates
+                if t.service_id == service.id and t.milestone_slug == m.slug
+            ]
             if not available:
                 continue
-            take = available[: min(remaining, 1)]  # at most one control per milestone
-            plan[m.key] = take
-            remaining -= len(take)
+            plan[m.key] = available[:1]  # at most one check per milestone
+            remaining -= 1
             if remaining == 0:
                 break
         return plan
@@ -68,7 +72,7 @@ class ControlLibrary:
 def mix_in(
     drafts: list[ProposalDraft], controls: list[ProposalDraft], seed: str
 ) -> tuple[list[ProposalDraft], list[int]]:
-    """Insert controls at seeded random positions. Returns the merged list and control indexes."""
+    """Insert checks at seeded random positions. Returns the merged list and check indexes."""
     rng = random.Random(seed)
     merged: list[tuple[ProposalDraft, bool]] = [(d, False) for d in drafts]
     for c in controls:
